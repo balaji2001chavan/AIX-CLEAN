@@ -1,0 +1,7 @@
+{
+  "categories": ["fashion", "grocery", "electronics", "services"],
+  "min_margin_pct": 20,
+  "demand_weight": 0.4,
+  "supply_gap_weight": 0.3,
+  "competition_weight": 0.3
+}

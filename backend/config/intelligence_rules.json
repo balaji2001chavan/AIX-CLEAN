@@ -1,0 +1,5 @@
+{
+  "avoid_keywords": ["test", "debug", "temp"],
+  "auto_activate": true,
+  "confidence_threshold": 0.7
+}

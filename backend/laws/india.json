@@ -1,0 +1,8 @@
+{
+  "country": "IN",
+  "currency": "INR",
+  "tax": ["GST"],
+  "max_discount": 60,
+  "auto_pricing": true,
+  "payout_allowed": true
+}

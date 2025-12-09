@@ -1,0 +1,9 @@
+{
+  "default": {
+    "auto_pricing": false,
+    "max_discount": 30,
+    "payout_allowed": false,
+    "ads_allowed": true,
+    "currency": "USD"
+  }
+}

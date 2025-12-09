@@ -1,0 +1,11 @@
+{
+  "id": "",
+  "name": "",
+  "type": "retail | wholesale | service",
+  "category": "",
+  "country": "",
+  "city": "",
+  "current_problem": "",
+  "monthly_sales_estimate": 0,
+  "onboarded": false
+}

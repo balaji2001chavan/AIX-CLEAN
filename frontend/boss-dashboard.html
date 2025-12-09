@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Boss AIX Dashboard</title>
+</head>
+<body>
+
+<h2>👑 Boss AIX – Admin Dashboard</h2>
+
+<textarea id="cmd" rows="4" cols="60"
+placeholder="Boss AIX ला काही सांगा..."></textarea>
+<br><br>
+
+<button onclick="send()">SEND</button>
+
+<pre id="out"></pre>
+
+<script>
+function send() {
+  fetch("http://localhost:5000/api/boss/command", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      text: document.getElementById("cmd").value
+    })
+  })
+  .then(r => r.json())
+  .then(d => {
+    document.getElementById("out").textContent =
+      JSON.stringify(d, null, 2);
+  })
+  .catch(err => {
+    document.getElementById("out").textContent = err;
+  });
+}
+</script>
+
+</body>
+</html>

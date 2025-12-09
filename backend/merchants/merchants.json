@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Test Store",
+    "type": "retail",
+    "category": "fashion",
+    "country": "IN",
+    "city": "Pune",
+    "current_problem": "sales low",
+    "monthly_sales_estimate": 100000,
+    "id": "M-1765087503079",
+    "onboarded": true,
+    "joined_at": "2025-12-07T06:05:03.081Z"
+  }
+]

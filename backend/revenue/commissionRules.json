@@ -1,0 +1,10 @@
+{
+  "default_commission_pct": 10,
+  "categories": {
+    "fashion": 12,
+    "grocery": 6,
+    "services": 15
+  },
+  "platform_share_pct": 70,
+  "owner_share_pct": 30
+}

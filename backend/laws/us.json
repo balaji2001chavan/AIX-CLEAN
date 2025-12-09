@@ -1,0 +1,8 @@
+{
+  "country": "US",
+  "currency": "USD",
+  "tax": ["SalesTax"],
+  "max_discount": 50,
+  "auto_pricing": true,
+  "payout_allowed": true
+}

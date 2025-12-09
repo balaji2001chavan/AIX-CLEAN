@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Boss AIX – Global Demo</title>
+</head>
+<body>
+
+<h2>🌍 Boss AIX – Global Shopping & Leads</h2>
+
+<input id="query" style="width:300px"
+ value="men shirt under 500 India" />
+
+<button onclick="runAIX()">RUN</button>
+
+<hr>
+
+<div id="result"></div>
+
+<script>
+function runAIX() {
+  const text = document.getElementById("query").value;
+
+  fetch("http://localhost:5000/api/voice", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text })
+  })
+  .then(res => res.json())
+  .then(data => {
+    const r = document.getElementById("result");
+    r.innerHTML = "";
+
+    if (data.mode === "SHOPPING") {
+      data.products.forEach(p => {
+        r.innerHTML += `
+          <div style="border:1px solid #ccc;padding:10px;margin:10px;width:250px">
+            <img src="${p.image}" width="120"><br>
+            <b>${p.title}</b><br>
+            Price: ${data.currency}${p.price}<br>
+            <small>${p.site}</small><br>
+            <a href="${p.link}" target="_blank">BUY</a>
+          </div>
+        `;
+      });
+    }
+  });
+}
+</script>
+
+</body>
+</html>

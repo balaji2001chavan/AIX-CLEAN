@@ -1,0 +1,11 @@
+{
+  "daily_profit_target": 10000000,
+  "max_daily_loss": 25000,
+  "price_change_pct": {
+    "min": -20,
+    "max": 40
+  },
+  "max_discount_global": 50,
+  "auto_execute_level": 2,
+  "risk_threshold": "MEDIUM"
+}
