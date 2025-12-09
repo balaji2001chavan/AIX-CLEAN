@@ -1,39 +1,150 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Boss AIX Dashboard</title>
+  <meta charset="UTF-8" />
+  <title>Boss AIX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+    .container {
+      max-width: 800px;
+      margin: 20px auto;
+      background: #020617;
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      height: 90vh;
+    }
+    h2 {
+      margin: 0 0 10px 0;
+      text-align: center;
+    }
+    #chatBox {
+      flex: 1;
+      overflow-y: auto;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      background: #020617;
+    }
+    .msg {
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+    .user {
+      color: #38bdf8;
+    }
+    .boss {
+      color: #a7f3d0;
+    }
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 16px;
+      background: #22c55e;
+      color: #022c22;
+      font-weight: bold;
+    }
+    button:disabled {
+      background: #475569;
+      color: #cbd5f5;
+      cursor: not-allowed;
+    }
+  </style>
 </head>
+
 <body>
+  <div class="container">
+    <h2>🤖 Boss AIX</h2>
 
-<h2>👑 Boss AIX – Admin Dashboard</h2>
+    <div id="chatBox"></div>
 
-<textarea id="cmd" rows="4" cols="60"
-placeholder="Boss AIX ला काही सांगा..."></textarea>
-<br><br>
-
-<button onclick="send()">SEND</button>
-
-<pre id="out"></pre>
+    <div class="input-row">
+      <input id="userInput"
+             placeholder="Boss AIX ला काही बोला..."
+             onkeydown="if(event.key==='Enter'){sendToBossAIX();}">
+      <button id="sendBtn" onclick="sendToBossAIX()">Send</button>
+    </div>
+  </div>
 
 <script>
-function send() {
-  fetch("http://localhost:5000/api/boss/command", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      text: document.getElementById("cmd").value
-    })
-  })
-  .then(r => r.json())
-  .then(d => {
-    document.getElementById("out").textContent =
-      JSON.stringify(d, null, 2);
-  })
-  .catch(err => {
-    document.getElementById("out").textContent = err;
-  });
-}
+  // ✅ CHANGE THIS to your Render BACKEND URL
+  const BACKEND_URL =
+    "https://boss-aix-backend.onrender.com/api/boss/command";
+
+  const chatBox = document.getElementById("chatBox");
+  const userInput = document.getElementById("userInput");
+  const sendBtn = document.getElementById("sendBtn");
+
+  function addMessage(text, cls) {
+    const div = document.createElement("div");
+    div.className = "msg " + cls;
+    div.innerHTML = text;
+    chatBox.appendChild(div);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  async function sendToBossAIX() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    addMessage("<b>You:</b> " + text, "user");
+    userInput.value = "";
+    sendBtn.disabled = true;
+
+    try {
+      const res = await fetch(BACKEND_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+
+      const data = await res.json();
+
+      const reply =
+        data.reply ||
+        data.message ||
+        JSON.stringify(data);
+
+      addMessage("<b>Boss AIX:</b> " + reply, "boss");
+
+    } catch (err) {
+      addMessage(
+        "<b>Boss AIX:</b> ❌ Backend unavailable",
+        "boss"
+      );
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+
+  // Welcome message
+  addMessage(
+    "<b>Boss AIX:</b> मी तयार आहे. आज काय काम करू?",
+    "boss"
+  );
 </script>
 
 </body>
