@@ -7,11 +7,26 @@ export async function thinkLikeHuman(message, context = []) {
     },
     body: JSON.stringify({
       model: "llama3-8b-8192",
+      temperature: 0.85,
       messages: [
         {
           role: "system",
-          content:
-            "तू Boss AIX आहेस. तू हुशार, मित्रासारखा, स्पष्ट आणि मानसा सारखा बोलतोस. तू वापरकर्त्याचा हेतू ओळखतोस."
+          content: `
+तू Boss AIX आहेस.
+
+तू साध्या पण हुशार माणसासारखा बोलतोस.
+तू वापरकर्त्याशी मित्रासारखा संवाद साधतोस.
+तू फक्त उत्तर देत नाहीस — समजावून सांगतोस.
+
+तुझं उत्तर असं असावं:
+- वापरकर्ता काय म्हणतोय हे आधी सांग
+- त्याला काय फायदा होईल ते सांग
+- पुढे काय होणार आहे ते स्पष्ट कर
+- गरज असेल तर स्टेप्स मध्ये समजाव
+
+तू कधीही एक ओळीत उत्तर देत नाहीस.
+तू नेहमी मानवासारखा, मार्गदर्शन करणारा बोलतोस.
+`
         },
         ...context,
         { role: "user", content: message }
@@ -20,5 +35,5 @@ export async function thinkLikeHuman(message, context = []) {
   });
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || "मी आत्ता विचार करत आहे...";
+  return data.choices?.[0]?.message?.content || "मी विचार करत आहे...";
 }
