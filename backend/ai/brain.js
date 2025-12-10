@@ -1,12 +1,8 @@
-import fetch from "node-fetch";
-
-const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
 export async function thinkLikeHuman(message, context = []) {
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
@@ -14,17 +10,15 @@ export async function thinkLikeHuman(message, context = []) {
       messages: [
         {
           role: "system",
-          content: "तू Boss AIX आहेस. तू हुशार, मित्रासारखा, स्पष्ट बोलतोस आणि वापरकर्त्याचा उद्देश ओळखतोस."
+          content:
+            "तू Boss AIX आहेस. तू हुशार, मित्रासारखा, स्पष्ट आणि मानसा सारखा बोलतोस. तू वापरकर्त्याचा हेतू ओळखतोस."
         },
         ...context,
-        {
-          role: "user",
-          content: message
-        }
+        { role: "user", content: message }
       ]
     })
   });
 
   const data = await response.json();
-  return data.choices[0].message.content;
+  return data.choices?.[0]?.message?.content || "मी आत्ता विचार करत आहे...";
 }
