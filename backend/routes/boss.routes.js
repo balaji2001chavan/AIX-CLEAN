@@ -1,27 +1,37 @@
 import express from "express";
+import { thinkLikeHuman } from "../ai/brain.js";
+
 const router = express.Router();
 
-router.post("/command", (req, res) => {
+let memory = [];
+
+router.post("/command", async (req, res) => {
   const { message, approve } = req.body;
 
   if (!message) {
     return res.status(400).json({ error: "NO MESSAGE" });
   }
 
-  // STEP 1: PLAN
+  // AI THINKING
+  const aiReply = await thinkLikeHuman(message, memory);
+
+  memory.push({ role: "user", content: message });
+  memory.push({ role: "assistant", content: aiReply });
+
+  // PLAN
   if (!approve) {
     return res.json({
-      step: 1,
-      type: "PLAN",
-      plan: `मी हे करणार आहे: "${message}". पुढे जाऊ का?`
+      step: "PLAN",
+      ai: aiReply,
+      plan: "मी हे काम करणार आहे. पुढे जाऊ का?"
     });
   }
 
-  // STEP 2: ACTION
+  // ACTION
   return res.json({
-    step: 2,
-    type: "ACTION",
-    result: `✅ आदेश पूर्ण केला: "${message}"`
+    step: "ACTION",
+    ai: aiReply,
+    result: "✅ आदेश अंमलात आणला"
   });
 });
 
