@@ -29,10 +29,9 @@ router.post("/command", async (req, res) => {
 
   // ACTION
   return res.json({
-    step: "ACTION",
-    ai: aiReply,
-    result: "✅ आदेश अंमलात आणला"
-  });
+  step: "PLAN",
+  ai_says: aiReply,
+  next: "तुम्हाला पुढे जायचं असल्यास 'हो' सांगा"
+ });
 });
-
 export default router;
