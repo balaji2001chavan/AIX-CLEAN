@@ -1,32 +1,30 @@
-// brain.js – FINAL VERSION
-import { remember, recall } from "./memory.js";
+import fetch from "node-fetch";
 
-// This function will analyse user message and decide meaning
-export function interpretCommand(userId, prompt) {
-  const lower = prompt.toLowerCase();
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-  if (lower.includes("hello") || lower.includes("hi")) {
-    return "greeting";
-  }
+export async function thinkLikeHuman(message, context = []) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama3-8b-8192",
+      messages: [
+        {
+          role: "system",
+          content: "तू Boss AIX आहेस. तू हुशार, मित्रासारखा, स्पष्ट बोलतोस आणि वापरकर्त्याचा उद्देश ओळखतोस."
+        },
+        ...context,
+        {
+          role: "user",
+          content: message
+        }
+      ]
+    })
+  });
 
-  if (lower.includes("video")) {
-    return "make_video";
-  }
-
-  if (lower.includes("marketing")) {
-    return "start_marketing";
-  }
-
-  if (lower.includes("income") || lower.includes("money")) {
-    return "show_income";
-  }
-
-  return "normal_chat"; // default
-}
-
-// This will store memory + return last 10 chat-history
-export function processMemory(userId, prompt, reply) {
-  remember(userId, prompt, reply);
-  const history = recall(userId);
-  return history.slice(-10);
+  const data = await response.json();
+  return data.choices[0].message.content;
 }
