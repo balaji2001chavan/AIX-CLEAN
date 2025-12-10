@@ -3,7 +3,13 @@ import cors from "cors";
 import bossRoutes from "./routes/boss.routes.js";
 
 const app = express();
-app.use(cors({ origin: "*" }));
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST","OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.json());
 
 app.get("/", (req, res) => {
@@ -13,6 +19,6 @@ app.get("/", (req, res) => {
 app.use("/api/boss", bossRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () =>
-  console.log("✅ Boss AIX Backend running on port", PORT)
-);
+app.listen(PORT, () => {
+  console.log("✅ Boss AIX Backend running on port", PORT);
+});
