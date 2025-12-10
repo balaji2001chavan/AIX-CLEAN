@@ -4,7 +4,17 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+// ✅ VERY IMPORTANT: CORS (with preflight support)
+app.use(cors({
+  origin: "*",                // frontend allow
+  methods: ["GET","POST","OPTIONS"],
+  allowedHeaders: ["Content-Type"]
+}));
+
+// ✅ Preflight handler (THIS FIXES YOUR ERROR)
+app.options("*", cors());
+
+// ✅ JSON body
 app.use(express.json());
 
 // ✅ Health check
@@ -12,11 +22,10 @@ app.get("/", (req, res) => {
   res.json({ status: "Boss AIX Backend LIVE ✅" });
 });
 
-// ✅ Main Boss AIX API
+// ✅ MAIN API
 app.post("/api/boss/command", (req, res) => {
   const text = (req.body.text || "").toLowerCase();
 
-  // Approval commands
   if (text === "yes") {
     return res.json({
       reply: "✅ Approved. Boss AIX काम सुरू करतो."
@@ -29,7 +38,6 @@ app.post("/api/boss/command", (req, res) => {
     });
   }
 
-  // Action intent
   if (
     text.includes("add") ||
     text.includes("जोड") ||
@@ -38,19 +46,18 @@ app.post("/api/boss/command", (req, res) => {
     return res.json({
       reply: "मी हा बदल करू शकतो.",
       plan: [
-        "आवश्यक गरज समजून घेणे",
-        "योग्य API / logic ठरवणे",
-        "Backend logic तयार करणे",
-        "Frontend अपडेट करणे",
+        "गरज समजून घेणे",
+        "योग्य logic / API ठरवणे",
+        "Backend update करणे",
+        "Frontend update करणे",
         "Testing आणि Deploy"
       ],
       askApproval: true
     });
   }
 
-  // Normal chat
   return res.json({
-    reply: "मी तयार आहे Boss. तुम्ही काय करायचं ते सांगा."
+    reply: "मी तयार आहे Boss. पुढचं काम सांगा."
   });
 });
 
