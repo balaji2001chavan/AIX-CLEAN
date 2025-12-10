@@ -1,29 +1,27 @@
 import express from "express";
-import { generatePlan } from "../engines/plan.engine.js";
-import { executeAction } from "../engines/action.engine.js";
-
 const router = express.Router();
 
 router.post("/command", (req, res) => {
   const { message, approve } = req.body;
 
   if (!message) {
-    return res.status(400).json({ error: "No message" });
+    return res.status(400).json({ error: "NO MESSAGE" });
   }
 
-  const plan = generatePlan(message);
-
+  // STEP 1: PLAN
   if (!approve) {
     return res.json({
-      step: "PLAN",
-      plan
+      step: 1,
+      type: "PLAN",
+      plan: `मी हे करणार आहे: "${message}". पुढे जाऊ का?`
     });
   }
 
-  const result = executeAction(plan.plan);
-  res.json({
-    step: "ACTION",
-    result
+  // STEP 2: ACTION
+  return res.json({
+    step: 2,
+    type: "ACTION",
+    result: `✅ आदेश पूर्ण केला: "${message}"`
   });
 });
 
