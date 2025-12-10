@@ -1,26 +1,44 @@
-import fetch from "node-fetch";
+export function chatBrain(userText) {
 
-export async function runAIX(prompt) {
-  try {
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.7,
-      }),
-    });
+  const introPatterns = [
+    "तू कोण",
+    "तुझी माहिती",
+    "what can you do",
+    "who are you",
+    "help"
+  ];
 
-    const data = await response.json();
-    if (!data?.choices) return "⚠️ Engine error.";
+  for (let p of introPatterns) {
+    if (userText.toLowerCase().includes(p)) {
+      return {
+        text: `
+मी Boss AIX आहे 🤖
 
-    return data.choices[0].message.content;
-  } catch (err) {
-    console.error("Groq Engine Error:", err);
-    return "🔥 AI Engine failed to generate response.";
+मी तुमचा स्मार्ट AI मित्र आहे.
+मी:
+• माहिती समजावून सांगू शकतो
+• जगातील विषय explain करू शकतो
+• business, tech, earning, apps याबद्दल बोलू शकतो
+• पुढे जाऊन real कामेही करू शकतो
+
+तुम्ही मला साध्या भाषेत बोलू शकता — जसं एखाद्या हुशार माणसाशी बोलता.
+`
+      };
+    }
   }
+
+  // Default smart reply
+  return {
+    text: `
+मी ऐकत आहे 🧠
+
+तुम्हाला कुठल्या विषयावर मदत हवी आहे?
+उदा:
+• पैसे कमवणे
+• business idea
+• app / website
+• AI माहिती
+• जगातील कोणतीही माहिती
+`
+  };
 }
