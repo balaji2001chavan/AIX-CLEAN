@@ -3,35 +3,47 @@ import { thinkLikeHuman } from "../ai/brain.js";
 
 const router = express.Router();
 
+// simple in-memory context
 let memory = [];
 
 router.post("/command", async (req, res) => {
-  const { message, approve } = req.body;
+  try {
+    const { message, approve } = req.body;
 
-  if (!message) {
-    return res.status(400).json({ error: "NO MESSAGE" });
-  }
+    if (!message) {
+      return res.status(400).json({ error: "NO MESSAGE" });
+    }
 
-  // AI THINKING
-  const aiReply = await thinkLikeHuman(message, memory);
+    const aiReply = await thinkLikeHuman(message, memory);
 
-  memory.push({ role: "user", content: message });
-  memory.push({ role: "assistant", content: aiReply });
+    memory.push({ role: "user", content: message });
+    memory.push({ role: "assistant", content: aiReply });
 
-  // PLAN
-  if (!approve) {
+    // STEP 1: PLAN
+    if (!approve) {
+      return res.json({
+        ok: true,
+        step: "PLAN",
+        text: aiReply,          // ✅ ALWAYS use "text"
+        ask: "पुढे जायचं असेल तर 'हो' सांगा"
+      });
+    }
+
+    // STEP 2: ACTION
     return res.json({
-      step: "PLAN",
-      ai: aiReply,
-      plan: "मी हे काम करणार आहे. पुढे जाऊ का?"
+      ok: true,
+      step: "ACTION",
+      text: aiReply,
+      result: "✅ काम पूर्ण केलं"
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      ok: false,
+      error: "AI ERROR"
     });
   }
-
-  // ACTION
-  return res.json({
-  step: "PLAN",
-  ai_says: aiReply,
-  next: "तुम्हाला पुढे जायचं असल्यास 'हो' सांगा"
- });
 });
+
 export default router;
