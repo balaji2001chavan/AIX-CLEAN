@@ -1,5 +1,3 @@
-// FINAL BOSS AIX BACKEND (Render + Local + CORS FIXED)
-
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
@@ -7,55 +5,55 @@ import fetch from "node-fetch";
 const app = express();
 app.use(express.json());
 
-// ✅ CORS — FRONTEND URL ALLOWED
+// 🔥 CORS FIX (Render + Frontend)
 app.use(cors({
-    origin: [
-        "https://boss-aix-frontend.onrender.com",
-        "http://localhost:3000"
-    ],
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"],
 }));
 
-// 🟢 HEALTH CHECK
+// 🔥 Health check
 app.get("/", (req, res) => {
-    res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// 🟡 MAIN AIX ROUTE
+// 🔥 MAIN AIX ROUTE (IMPORTANT)
 app.post("/api/aix", async (req, res) => {
-    try {
-        const user = req.body.message || "";
+  try {
+    const message = req.body.message || "";
 
-        if (!user.trim()) {
-            return res.json({ text: "रिकामा संदेश मिळाला." });
-        }
-
-        // --- Replace YOUR_MODEL with your actual model (ex: llama3.2) ---
-        const ollamaResp = await fetch("http://localhost:11434/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama3.2",
-                prompt: user,
-                stream: false
-            })
-        });
-
-        const data = await ollamaResp.json();
-
-        return res.json({
-            text: data?.response || "AIX: रिकामा प्रतिसाद.",
-            model: "llama3.2"
-        });
-
-    } catch (err) {
-        console.error("AIX ERROR:", err);
-        return res.json({ text: "AIX ERROR: Ollama चालू नाही किंवा backend error." });
+    // 🧠 If no message
+    if (!message.trim()) {
+      return res.json({ reply: "काय मदत करू, बॉस?" });
     }
+
+    // 🔥 Call Ollama (local) OR main cloud AI…
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3.2",
+        prompt: message,
+        stream: false,
+      }),
+    });
+
+    const data = await response.json();
+    return res.json({
+      reply: data.response || "मी समजू शकलेलो नाही बॉस… पुन्हा सांगा.",
+    });
+
+  } catch (error) {
+    console.log("AIX ERROR:", error);
+    return res.json({
+      reply: "AIX ERROR: Ollama चालू नाही.",
+      error: error.message,
+    });
+  }
 });
 
+// 🔥 Start Server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log("🔥 Boss AIX Backend running on PORT:", PORT);
+  console.log("Boss AIX Backend running on port", PORT);
 });
