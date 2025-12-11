@@ -1,59 +1,57 @@
+// ------------------------------
+// BOSS AIX - SMART BACKEND
+// ------------------------------
+
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
 
-// 🔥 CORS FIX (Render + Frontend)
+// ⭐ ALLOW FRONTEND (Render domain)
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"],
+    origin: "*",
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"]
 }));
 
-// 🔥 Health check
+// ROOT CHECK
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
+    res.json({
+        ok: true,
+        msg: "Boss AIX Backend LIVE"
+    });
 });
 
-// 🔥 MAIN AIX ROUTE (IMPORTANT)
+// ------------------------------
+// ⭐ THE REQUIRED API: /api/aix
+// ------------------------------
 app.post("/api/aix", async (req, res) => {
-  try {
-    const message = req.body.message || "";
+    try {
+        const { message } = req.body;
 
-    // 🧠 If no message
-    if (!message.trim()) {
-      return res.json({ reply: "काय मदत करू, बॉस?" });
+        if (!message) {
+            return res.json({ error: "EMPTY MESSAGE", reply: "काय म्हणताय बॉस?" });
+        }
+
+        // TEMP NORMAL AI REPLY (until Ollama connected)
+        const smartReply = `Boss AIX: मी ऐकले → "${message}" आणि मी तुमची मदत करण्यासाठी तयार आहे!`;
+
+        res.json({
+            ok: true,
+            heard: message,
+            reply: smartReply
+        });
+
+    } catch (err) {
+        res.json({ error: "SERVER ERROR", details: err.message });
     }
-
-    // 🔥 Call Ollama (local) OR main cloud AI…
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama3.2",
-        prompt: message,
-        stream: false,
-      }),
-    });
-
-    const data = await response.json();
-    return res.json({
-      reply: data.response || "मी समजू शकलेलो नाही बॉस… पुन्हा सांगा.",
-    });
-
-  } catch (error) {
-    console.log("AIX ERROR:", error);
-    return res.json({
-      reply: "AIX ERROR: Ollama चालू नाही.",
-      error: error.message,
-    });
-  }
 });
 
-// 🔥 Start Server
+// ------------------------------
+// START SERVER
+// ------------------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on port", PORT);
+    console.log(`🚀 Boss AIX Backend running on PORT ${PORT}`);
 });
