@@ -1,21 +1,27 @@
-// brain.js — FINAL FIXED VERSION
-// AIX मुख्य बुद्धिमत्ता इंजिन — हलकं, स्थिर, deploy-friendly
+import fetch from "node-fetch";
 
-export function brainResponse(message) {
-  // बेसिक Intent Recognition (नंतर आपोआप अपडेट करता येईल)
-  message = message.toLowerCase();
+export async function brainResponse(text) {
+  try {
+    const r = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [
+          { role: "system", content: "You are Boss AIX. Speak naturally, human-like, smart." },
+          { role: "user", content: text }
+        ]
+      })
+    });
 
-  if (message.includes("hi") || message.includes("hello") || message.includes("हाय")) {
-    return "हाय! मी AIX आहे — तुझा डिजिटल पार्टनर. काय मदत करू?";
+    const data = await r.json();
+    return data?.choices?.[0]?.message?.content || "AIX ERROR: Empty response";
+
+  } catch (err) {
+    console.error("BRAIN ERROR:", err);
+    return "AIX ERROR: Brain failed.";
   }
-
-  if (message.includes("तू कोण") || message.includes("who are you")) {
-    return "मी Boss AIX — तुझा स्मार्ट AI सिस्टम. बोललंत की लगेच काम सुरू!";
-  }
-
-  if (message.includes("काम") || message.includes("task")) {
-    return "कुठलं काम करायचं आहे ते सांग — मी लगेच सुरू करतो!";
-  }
-
-  return "मी ऐकत आहे… जरा अजून स्पष्ट सांगाल का? 😊";
 }
