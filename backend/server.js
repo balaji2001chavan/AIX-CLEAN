@@ -1,56 +1,35 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
-import path from "path";
-import { fileURLToPath } from "url";
 
 const app = express();
+app.use(express.json());
 
-// ------------ FIX 1: Render PORT Support -------------
-const PORT = process.env.PORT || 5000;
+// 🔥 CORS FIX — Render frontend allow
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
+}));
 
-// ------------ FIX 2: CORS 100% UNBLOCK ---------------
-app.use(cors({ origin: "*" }));
-
-// ------------ FIX 3: JSON Body Parser ----------------
-app.use(express.json({ limit: "50mb" }));
-
-// ------------ FIX 4: ROOT CHECK ----------------------
+// 🔥 TEST ROUTE — Backend चालू आहे का?
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE", time: new Date() });
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// ------------ FIX 5: MAIN /api/aix ENDPOINT ----------
+// 🔥 AIX MAIN API
 app.post("/api/aix", async (req, res) => {
   try {
-    const user = req.body.message || "Hello";
+    const message = req.body.message || "No message";
 
-    const result = {
+    return res.json({
       boss: true,
-      heard: user,
-      reply: `मी ऐकत आहे, ${user}`,
-      model: "llama3.2",
-      status: "OK"
-    };
-
-    return res.json(result);
-  } catch (err) {
-    return res.status(500).json({
-      error: true,
-      message: err.message
+      reply: `AIX बोलतोय… तू विचारले: ${message}`,
+      ok: true
     });
+  } catch (err) {
+    return res.status(500).json({ error: "Server Error", details: err.message });
   }
 });
 
-// ------------ FIX 6: 404 HANDLER ----------------------
-app.use((req, res) => {
-  res.status(404).json({
-    error: "NOT_FOUND",
-    path: req.originalUrl
-  });
-});
-
-// ------------ START SERVER ----------------------------
-app.listen(PORT, () =>
-  console.log(`🔥 Boss AIX Backend running on ${PORT}`)
-);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Boss AIX Backend running on ${PORT}`));
