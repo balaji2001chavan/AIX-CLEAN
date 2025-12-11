@@ -3,26 +3,26 @@ import { brainResponse } from "../ai/brain.js";
 
 const router = express.Router();
 
-// AIX main brain endpoint
 router.post("/", async (req, res) => {
   try {
-    const message = req.body.message || "";
+    const { message } = req.body;
 
-    if (!message.trim()) {
-      return res.json({ error: "EMPTY MESSAGE" });
+    if (!message) {
+      return res.status(400).json({ error: "MESSAGE_REQUIRED" });
     }
 
-    // Call AI brain
-    const reply = await brainResponse(message);
+    const reply = brainResponse(message);
 
     return res.json({
-      ok: true,
-      reply: reply || "AIX: मी इथे आहे! पुढचा आदेश दे 😊"
+      boss: true,
+      heard: message,
+      reply: reply,
+      success: true
     });
 
   } catch (err) {
     console.error("AIX ERROR:", err);
-    return res.status(500).json({ error: "AIX_INTERNAL_ERROR" });
+    return res.status(500).json({ error: "AIX_FAILED" });
   }
 });
 
