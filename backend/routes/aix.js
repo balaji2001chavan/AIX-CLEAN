@@ -2,21 +2,20 @@ import express from "express";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  try {
-    const msg = req.body.message || "";
+    try {
+        const msg = req.body.message || "";
 
-    if (!msg.trim()) {
-      return res.json({ reply: "काहीतरी बोला बॉस." });
+        if (!msg) {
+            return res.json({ reply: "काय म्हणताय Boss? काही बोला ☕" });
+        }
+
+        // BASIC AI REPLY (like GPT) – upgrade करू शकतो पुढे
+        const reply = `Boss, मी fully active आहे. तुम्ही म्हणाल ते मी करीन. तुम्ही म्हणाल: "${msg}" — आणि मी त्यावर काम सुरू करतो.`;
+
+        res.json({ reply });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
     }
-
-    // SAMPLE NORMAL AI REPLY (तुझ्यासारखे बोलणारा)
-    return res.json({
-      reply: `बॉस, मी live आहे. तुम्ही म्हणाल ते मी करायला तयार आहे. तुम्ही म्हणाल तेवढे स्मार्ट होण्याचा प्रयत्न मी करतोय. 😎`,
-    });
-
-  } catch (err) {
-    return res.status(500).json({ error: "AIX INTERNAL ERROR", details: err });
-  }
 });
 
 export default router;
