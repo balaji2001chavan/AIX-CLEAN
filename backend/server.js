@@ -2,35 +2,42 @@ import express from "express";
 import cors from "cors";
 
 const app = express();
-app.use(express.json());
 
+// FIX 1: Allow all origins for frontend
 app.use(cors({
-  origin: "*",       // Allow ALL (Frontend fixed)
-  methods: "*",
-  allowedHeaders: "*"
+  origin: "*",
+  methods: "GET,POST,OPTIONS",
+  allowedHeaders: "Content-Type"
 }));
 
-// ---- HEALTH CHECK ----
+app.use(express.json());
+
+// HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// ---- MAIN AIX ROUTE ----
+// MAIN AIX ROUTE
 app.post("/api/aix", async (req, res) => {
-  const message = req.body?.message || "";
+  try {
+    const userMsg = req.body.message || "";
 
-  // SIMPLE NORMAL SMART REPLY
-  if (!message.trim()) {
-    return res.json({ reply: "काय मदत करू?" });
+    if (!userMsg.trim()) {
+      return res.json({ reply: "काहीतरी लिहा बॉस." });
+    }
+
+    // Temporary reply (Later will connect to model)
+    res.json({
+      reply: `Boss AIX बोलतोय → "${userMsg}" समजले बॉस. मी अजून शिकतोय.`
+    });
+
+  } catch (err) {
+    res.status(500).json({ error: "SERVER_ERROR", details: err.message });
   }
-
-  // Example Replies
-  res.json({
-    reply: `Boss AIX: मी तुझं बोलणं समजलो → "${message}".  
-मी आत्ता LIVE आहे आणि तुझ्यासोबत काम करण्यास तयार आहे.`
-  });
 });
 
-// ---- START ----
+// SERVER START
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Boss AIX Backend running"));
+app.listen(PORT, () => {
+  console.log("Boss AIX Backend Running on port", PORT);
+});
