@@ -1,31 +1,21 @@
 import express from "express";
-import fetch from "node-fetch";
-
 const router = express.Router();
 
 router.post("/", async (req, res) => {
   try {
-    const text = req.body.message || "";
+    const msg = req.body.message || "";
 
-    if (!text) {
-      return res.json({ error: "EMPTY_MESSAGE" });
+    if (!msg.trim()) {
+      return res.json({ reply: "काहीतरी बोला बॉस." });
     }
 
-    // Simple LLM call – upgrade करू पुढे
-    const reply = `AIX बोलतोय: "${text}" मी समजलो, आता पुढील स्टेप सांग."`;
-
+    // SAMPLE NORMAL AI REPLY (तुझ्यासारखे बोलणारा)
     return res.json({
-      ok: true,
-      reply,
-      type: "normal"
+      reply: `बॉस, मी live आहे. तुम्ही म्हणाल ते मी करायला तयार आहे. तुम्ही म्हणाल तेवढे स्मार्ट होण्याचा प्रयत्न मी करतोय. 😎`,
     });
 
   } catch (err) {
-    return res.status(500).json({
-      ok: false,
-      error: "AIX_ENGINE_FAILED",
-      details: err.message
-    });
+    return res.status(500).json({ error: "AIX INTERNAL ERROR", details: err });
   }
 });
 
