@@ -1,65 +1,48 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";        // FIX 1
-import bodyParser from "body-parser";
+import fetch from "node-fetch";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+app.use(cors());
+app.use(express.json());
 
-// ====== MIDDLEWARE ======
-app.use(cors({
-    origin: "*",                      // FIX 2 - Frontend connected
-    methods: "GET,POST"
-}));
-app.use(bodyParser.json());
+// MAIN AIX ROUTE
+app.post("/api/aix", async (req, res) => {
+  try {
+    const user = req.body.message;
 
-// ====== ROOT CHECK ======
+    // CLOUD AI MODEL (replace with your API key)
+    const reply = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are Boss AIX — सर्वात स्मार्ट, हुशार, भविष्य ओळखणारा, मानवासारखा बोलणारा, मराठीत किंवा वापरकर्ता ज्या भाषेत बोलेल त्या भाषेत reply देणारा AI सहाय्यक."
+          },
+          { role: "user", content: user }
+        ]
+      })
+    });
+
+    const data = await reply.json();
+    const output = data.choices[0].message.content;
+
+    res.json({ ai: output });
+  } catch (err) {
+    console.error(err);
+    res.json({ ai: "AIX ERROR: Backend processing failed." });
+  }
+});
+
 app.get("/", (req, res) => {
-    res.json({
-        ok: true,
-        msg: "Boss AIX Backend LIVE",
-        time: new Date().toISOString(),
-    });
+  res.json({ ok: true, msg: "AIX Backend LIVE" });
 });
 
-// ====== AI ENGINE CALL ======
-async function askAI(prompt) {
-    try {
-        const r = await fetch("http://localhost:11434/api/generate", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                model: "llama3.2",
-                prompt: prompt,
-                stream: false,
-            })
-        });
-
-        const data = await r.json();
-        return data.response || "AIX: मी समजू शकलो नाही.";
-    } catch (err) {
-        return "AIX ERROR: Ollama चालू नाही.";
-    }
-}
-
-// ====== MAIN COMMAND ROUTE ======
-app.post("/api/boss/command", async (req, res) => {
-    const msg = req.body.message || "";
-
-    if (!msg.trim()) {
-        return res.json({ reply: "AIX: रिकामा संदेश मिळाला." });
-    }
-
-    const aiResponse = await askAI(msg);
-
-    res.json({
-        heard: msg,
-        reply: aiResponse,
-        boss: true
-    });
-});
-
-// ====== START SERVER ======
-app.listen(PORT, () => {
-    console.log(`Boss AIX Backend running on port ${PORT}`);
-});
+app.listen(5000, () => console.log("AIX Backend Running on 5000"));
