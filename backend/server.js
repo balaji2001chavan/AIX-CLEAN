@@ -1,56 +1,65 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
+import fetch from "node-fetch";        // FIX 1
+import bodyParser from "body-parser";
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+const PORT = process.env.PORT || 5000;
 
-// HEALTH CHECK
+// ====== MIDDLEWARE ======
+app.use(cors({
+    origin: "*",                      // FIX 2 - Frontend connected
+    methods: "GET,POST"
+}));
+app.use(bodyParser.json());
+
+// ====== ROOT CHECK ======
 app.get("/", (req, res) => {
-  res.json({
-    ok: true,
-    msg: "Boss AIX Backend LIVE",
-    time: new Date().toISOString(),
-  });
+    res.json({
+        ok: true,
+        msg: "Boss AIX Backend LIVE",
+        time: new Date().toISOString(),
+    });
 });
 
-// COMMAND API
-app.post("/api/boss/command", async (req, res) => {
-  try {
-    const { message } = req.body;
+// ====== AI ENGINE CALL ======
+async function askAI(prompt) {
+    try {
+        const r = await fetch("http://localhost:11434/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "llama3.2",
+                prompt: prompt,
+                stream: false,
+            })
+        });
 
-    if (!message) {
-      return res.json({ error: "NO MESSAGE RECEIVED" });
+        const data = await r.json();
+        return data.response || "AIX: मी समजू शकलो नाही.";
+    } catch (err) {
+        return "AIX ERROR: Ollama चालू नाही.";
+    }
+}
+
+// ====== MAIN COMMAND ROUTE ======
+app.post("/api/boss/command", async (req, res) => {
+    const msg = req.body.message || "";
+
+    if (!msg.trim()) {
+        return res.json({ reply: "AIX: रिकामा संदेश मिळाला." });
     }
 
-    // LOCAL OLLAMA CONNECT
-    const ai = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "llama3.2",
-        prompt: message,
-        stream: false,
-      }),
-    });
+    const aiResponse = await askAI(msg);
 
-    const data = await ai.json();
-
-    return res.json({
-      boss: true,
-      heard: message,
-      reply: data.response || "AI ERROR",
+    res.json({
+        heard: msg,
+        reply: aiResponse,
+        boss: true
     });
-  } catch (e) {
-    return res.json({
-      boss: true,
-      heard: req.body.message,
-      reply: "Backend AI error",
-      error: e.toString(),
-    });
-  }
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log("Boss AIX Backend running"));
+// ====== START SERVER ======
+app.listen(PORT, () => {
+    console.log(`Boss AIX Backend running on port ${PORT}`);
+});
