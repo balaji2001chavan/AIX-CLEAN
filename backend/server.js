@@ -1,70 +1,110 @@
+// ------------------------------
+// BOSS AIX – SUPER SMART BACKEND
+// ------------------------------
+
 import express from "express";
 import cors from "cors";
+import bodyParser from "body-parser";
 import fetch from "node-fetch";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+app.use(cors());
+app.use(bodyParser.json());
 
-app.use(cors({ origin: "*" }));
-app.use(express.json());
-
-let memory = [];
-
+// 💠 HEALTH CHECK
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX LLM Server LIVE ✅" });
+  res.json({
+    ok: true,
+    msg: "🔥 Boss AIX Backend LIVE",
+    time: new Date().toISOString(),
+  });
 });
 
-// ----------------------------
-// TALK TO OLLAMA (REAL BRAIN)
-// ----------------------------
-async function talkToAI(message) {
-  const payload = {
-    model: "llama3.2:1b",
-    prompt: `
-You are Boss AIX.
-You talk like a friendly, smart human.
-You explain things clearly.
-You respond in the same language as the user.
-Be natural, helpful and conversational.
+// 💠 UNIVERSAL AI REQUEST FUNCTION
+async function askAI(prompt) {
+  try {
+    const r = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "llama3.2:latest",
+        prompt: prompt,
+        stream: false,
+      }),
+    });
 
-Conversation:
-${memory.join("\n")}
-
-User: ${message}
-Boss AIX:
-`,
-    stream: false
-  };
-
-  const r = await fetch("http://localhost:11434/api/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload)
-  });
-
-  const data = await r.json();
-  return data.response || "मला थोडं अडचण येतेय, परत विचाराल का?";
+    const data = await r.json();
+    return data.response || "AI ने काही उत्तर दिले नाही";
+  } catch (err) {
+    return "AI ENGINE DOWN आहे ❌ " + err.message;
+  }
 }
 
-// ----------------------------
-// MAIN CHAT API
-// ----------------------------
+// ----------------------------------------------
+// 💠 MAIN ENDPOINT → CHAT / PLAN / ACTION / REPLY
+// ----------------------------------------------
 app.post("/api/boss/command", async (req, res) => {
-  const message = req.body.message || "";
+  const { message, approve } = req.body;
 
-  memory.push("User: " + message);
-  if (memory.length > 8) memory.shift();
+  if (!message && !approve)
+    return res.json({ error: "EMPTY MESSAGE" });
+
+  let finalPrompt = "";
+
+  if (!approve) {
+    // AI ला विचारण्यासाठी PROMPT
+    finalPrompt = `
+    You are BOSS AIX.
+    Reply like a human conversational AI.
+    Understand user intention.
+    If user asks a task → generate PLAN.
+    Output JSON ONLY:
+
+    {
+      "type": "PLAN",
+      "ask": "तुला याची खात्री आहे का?",
+      "steps": ["Step1 ...", "Step2 ..."]
+    }
+
+    If reply is normal → use:
+    {
+      "type": "CHAT",
+      "reply": "तुझं उत्तर"
+    }
+
+    USER: ${message}
+    `;
+  } else {
+    // User ने PLAN approve केले
+    finalPrompt = `
+    You are BOSS AIX executing APPROVED PLAN.
+    Complete real action and output JSON:
+
+    {
+      "type":"ACTION",
+      "result":"काम पूर्ण झाले",
+      "details":"काय केले ते"
+    }
+    `;
+  }
+
+  const ai = await askAI(finalPrompt);
 
   try {
-    const reply = await talkToAI(message);
-
-    memory.push("Boss AIX: " + reply);
-
+    const clean = JSON.parse(ai);
+    res.json(clean);
+  } catch {
     res.json({
-      text: reply,
-      human: true
+      type: "CHAT",
+      reply: "मी तयार आहे. सांगा, पुढे काय करू?",
     });
-  } catch (e) {
-    console.error(e);
-    res.json({
-      text: "⚠️ AI मेंदूशी कनेक्ट होत नाही. Ollama चालू आहे का?"
+  }
+});
+
+// --------------------------------
+// 💠 START SERVER
+// --------------------------------
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log("🔥 BOSS AIX SUPER BACKEND LIVE → " + PORT);
+});
