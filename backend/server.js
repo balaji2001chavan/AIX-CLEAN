@@ -3,57 +3,45 @@ import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 5000;
+
+// ⭐ CORS FIXED
+app.use(cors({
+  origin: "*",
+  methods: "GET,POST,OPTIONS",
+  allowedHeaders: "Content-Type"
+}));
+
 app.use(express.json());
 
+// ⭐ HEALTH CHECK
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE with GROQ AI" });
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-app.post("/api/boss/command", async (req, res) => {
+// ⭐ MAIN AIX API
+app.post("/api/aix", async (req, res) => {
   try {
     const { message } = req.body;
 
     if (!message) {
-      return res.json({ reply: "काय मदत करू?" });
+      return res.json({ error: "NO_MESSAGE" });
     }
 
-    const completion = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          messages: [
-            {
-              role: "system",
-              content:
-                "तू Boss AIX आहेस. तू स्मार्ट, भावूक, poetic, GenZ style मध्ये बोलणारा, मजबूत AI आहेस. तू मानवासारखा बोल, समज, analyze कर आणि real कामासाठी प्लॅन सुचव."
-            },
-            {
-              role: "user",
-              content: message
-            }
-          ],
-          temperature: 0.8
-        })
-      }
-    );
+    // Render वर Ollama नाही म्हणून mock reply
+    res.json({
+      reply: `AIX: मी ऐकलं → "${message}".  
+      मी Render backend वर चालू आहे.  
+      हे message मी AI सारखे process करतो.`,
+      model: "render-mode"
+    });
 
-    const result = await completion.json();
-    const reply = result?.choices?.[0]?.message?.content ?? "मी विचार करत आहे...";
-
-    return res.json({ reply });
   } catch (err) {
-    console.error(err);
-    return res.json({ reply: "AIX ERROR: Smart Engine Offline" });
+    res.json({ error: "SERVER_ERROR", details: err.message });
   }
 });
 
-app.listen(process.env.PORT || 5000, () => {
-  console.log("BOSS AIX Backend running");
+// ⭐ START SERVER
+app.listen(PORT, () => {
+  console.log("Boss AIX Backend running on port", PORT);
 });
