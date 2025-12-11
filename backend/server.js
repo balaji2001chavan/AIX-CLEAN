@@ -1,3 +1,10 @@
+import cors from "cors";
+
+app.use(cors({
+  origin: "*",          // पुढे आपण secure करू
+  methods: "GET,POST",
+  allowedHeaders: "Content-Type"
+}));
 import express from "express";
 import cors from "cors";
 import aixRoute from "./routes/aix.js";
