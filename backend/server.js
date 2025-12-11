@@ -1,57 +1,51 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
+
 app.use(express.json());
 
-// 🔥 FIX 1 – UNIVERSAL CORS (Render Frontend allowed)
-app.use(cors({
-  origin: [
-    "https://boss-aix-frontend.onrender.com",
-    "http://localhost:3000",
-    "*"
-  ],
-  methods: "GET,POST",
-  allowedHeaders: "Content-Type"
-}));
+// ⭐ FINAL CORS FIX (Render allowed)
+app.use(
+  cors({
+    origin: [
+      "https://boss-aix-frontend.onrender.com",
+      "http://localhost:3000",
+      "*"
+    ],
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
 
-// 🔥 HEALTH CHECK
+// TEST ROUTE
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// 🔥 FIX 2 – CREATE WORKING /api/aix ENDPOINT
+// ⭐ MAIN API
 app.post("/api/aix", async (req, res) => {
   try {
-    const message = req.body.message || "";
+    const message = req.body.message || "Hello";
 
-    if (!message.trim()) {
-      return res.json({ reply: "काहीतरी बोला मी ऐकतोय बॉस ❤️" });
-    }
+    // call to ollama or groq (replace as per your setup)
+    const reply = `AIX Reply: मी ऑनलाइन आहे. तुम्ही म्हणाल ते मी समजून करीन.`;
 
-    // SIMPLE SMART AI RESPONSE (Later we connect Ollama/Groq)
-    let reply = "";
-
-    if (message.includes("कोण आहेस") || message.includes("who are you")) {
-      reply = "मी Boss AIX — तुमचा स्मार्ट AI साथीदार 🔥";
-    }
-    else if (message.includes("चालू आहेस")) {
-      reply = "हो बॉस, मी पूर्णपणे चालू आहे! आदेश द्या. 🚀";
-    }
-    else {
-      reply = "मी इथे आहे बॉस, तुम्हाला मदत करण्यासाठी तयार आहे ❤️";
-    }
-
-    res.json({ reply });
+    res.json({
+      success: true,
+      reply,
+    });
 
   } catch (err) {
-    console.error(err);
-    res.json({ reply: "AIX ERROR: काहीतरी गडबड झाली!" });
+    res.status(500).json({
+      success: false,
+      error: "AIX INTERNAL ERROR",
+      detail: err.message,
+    });
   }
 });
 
-// 🔥 START SERVER
+// RUN SERVER
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Boss AIX Backend running on PORT ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Boss AIX Backend running on ${PORT}`));
