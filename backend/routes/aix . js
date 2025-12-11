@@ -1,0 +1,25 @@
+import express from "express";
+const router = express.Router();
+
+router.post("/", async (req, res) => {
+    try {
+        const userMessage = req.body.message || "";
+
+        if (!userMessage.trim()) {
+            return res.json({ error: "EMPTY_MESSAGE" });
+        }
+
+        // TEMP RESPONSE (ChatGPT style)
+        return res.json({
+            boss: true,
+            reply: `Boss येथे आहे 😎 — तू म्हणालास: "${userMessage}".  
+मी हे समजून घेतलं आहे. पुढचा आदेश सांग.`,
+            success: true
+        });
+    } catch (e) {
+        console.error("AIX ERROR:", e);
+        return res.json({ error: "AIX_CRASH" });
+    }
+});
+
+export default router;
