@@ -1,45 +1,40 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
 
 const app = express();
+app.use(express.json());
 
-// ❤️ CORS – FIX FOR RENDER FRONTEND
+// CORS FIX (Render → Render communication allowed)
 app.use(cors({
-  origin: "*",            // allow all
-  methods: "GET,POST",    // what methods allowed
-  allowedHeaders: "Content-Type"
+  origin: "*",
+  methods: ["GET", "POST"],
+  allowedHeaders: ["Content-Type"]
 }));
 
-app.use(bodyParser.json());
-
-// TEST ROOT
+// SIMPLE HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// MAIN API used by frontend
+// AIX MAIN ENDPOINT (Frontend याचला हिट करते)
 app.post("/api/aix", (req, res) => {
-  try {
-    const { message } = req.body;
+  const { message } = req.body;
 
-    if (!message) {
-      return res.json({ reply: "मला काय सांगायचे ते बोला बॉस ❤️" });
-    }
-
-    // TEMP dummy smart reply
-    return res.json({
-      reply: `बॉस, मी ऐकत आहे: "${message}". AIX पूर्ण स्मार्ट मोडमध्ये आहे 🔥`
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ reply: "AIX ERROR: Backend crash झाला" });
+  if (!message) {
+    return res.json({ error: "NO_MESSAGE" });
   }
+
+  // TEMP REPLY (फिलहाल ChatGPT-स्टाइल स्मूथ)
+  let reply = `Boss AIX: मला तुझं म्हणणं कळलं — "${message}". आता पुढचा आदेश दे Boss.`;
+
+  res.json({
+    ok: true,
+    reply: reply
+  });
 });
 
-// PORT
+// PORT CONFIG
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on PORT", PORT);
+  console.log("Boss AIX Backend running on port", PORT);
 });
