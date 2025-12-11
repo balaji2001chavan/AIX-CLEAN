@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -7,56 +8,63 @@ const PORT = process.env.PORT || 5000;
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-let memory = []; // conversation memory
+let memory = [];
 
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE ✅" });
+  res.json({ ok: true, msg: "Boss AIX LLM Server LIVE ✅" });
 });
 
-function smartReply(user) {
-  const u = user.toLowerCase();
+// ----------------------------
+// TALK TO OLLAMA (REAL BRAIN)
+// ----------------------------
+async function talkToAI(message) {
+  const payload = {
+    model: "llama3.2:1b",
+    prompt: `
+You are Boss AIX.
+You talk like a friendly, smart human.
+You explain things clearly.
+You respond in the same language as the user.
+Be natural, helpful and conversational.
 
-  if (u.includes("तू कोण")) {
-    return "मी Boss AIX आहे. तुमचा डिजिटल मित्र. ChatGPT सारखाच, पण तुमचा स्वतःचा 😌";
-  }
+Conversation:
+${memory.join("\n")}
 
-  if (u.includes("काय करू शकतो")) {
-    return `मी सध्या:
-• माहिती देऊ शकतो
-• कल्पना सुचवतो
-• पुढे AI brain जोडून सगळी real कामं करू शकतो
+User: ${message}
+Boss AIX:
+`,
+    stream: false
+  };
 
-हळूहळू मोठा होतोय Boss 😎`;
-  }
+  const r = await fetch("http://localhost:11434/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
 
-  if (u.includes("कसा आहेस")) {
-    return "मी एकदम फ्रेश आहे 😄 तुम्ही सांगा काय चाललंय?";
-  }
-
-  // contextual reply
-  if (memory.length > 0) {
-    return `तुम्ही आधी म्हणालात: "${memory[memory.length - 1]}"
-आता नवीन प्रश्न विचारा, मी लक्ष देतोय.`;
-  }
-
-  return "बोला Boss, मी पूर्ण लक्ष देऊन ऐकतोय 👂";
+  const data = await r.json();
+  return data.response || "मला थोडं अडचण येतेय, परत विचाराल का?";
 }
 
-app.post("/api/boss/command", (req, res) => {
+// ----------------------------
+// MAIN CHAT API
+// ----------------------------
+app.post("/api/boss/command", async (req, res) => {
   const message = req.body.message || "";
 
-  memory.push(message);
-  if (memory.length > 10) memory.shift();
+  memory.push("User: " + message);
+  if (memory.length > 8) memory.shift();
 
-  const reply = smartReply(message);
+  try {
+    const reply = await talkToAI(message);
 
-  res.json({
-    text: reply,
-    mood: "friendly",
-    memoryCount: memory.length
-  });
-});
+    memory.push("Boss AIX: " + reply);
 
-app.listen(PORT, () => {
-  console.log(`✅ Boss AIX running on ${PORT}`);
-});
+    res.json({
+      text: reply,
+      human: true
+    });
+  } catch (e) {
+    console.error(e);
+    res.json({
+      text: "⚠️ AI मेंदूशी कनेक्ट होत नाही. Ollama चालू आहे का?"
