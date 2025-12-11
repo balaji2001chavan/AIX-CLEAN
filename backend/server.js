@@ -1,55 +1,45 @@
 import express from "express";
 import cors from "cors";
+import bodyParser from "body-parser";
 
 const app = express();
 
-// ⭐ Render → Frontend domain allow
-const FRONTEND_URL = "https://boss-aix-frontend.onrender.com";
+// ❤️ CORS – FIX FOR RENDER FRONTEND
+app.use(cors({
+  origin: "*",            // allow all
+  methods: "GET,POST",    // what methods allowed
+  allowedHeaders: "Content-Type"
+}));
 
-// ⭐ CORS FIX – MOST IMPORTANT
-app.use(
-  cors({
-    origin: FRONTEND_URL,
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type"],
-  })
-);
+app.use(bodyParser.json());
 
-// ⭐ Body parser
-app.use(express.json());
-
-// ------------------------------
-//  TEST ROUTE
-// ------------------------------
+// TEST ROOT
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// ------------------------------
-//  AIX MAIN ROUTE
-// ------------------------------
-app.post("/api/aix", async (req, res) => {
+// MAIN API used by frontend
+app.post("/api/aix", (req, res) => {
   try {
     const { message } = req.body;
 
     if (!message) {
-      return res.json({ error: "NO_MESSAGE" });
+      return res.json({ reply: "मला काय सांगायचे ते बोला बॉस ❤️" });
     }
 
-    // TEMPORARY AI REPLY until real model connected
-    const reply = `Boss AIX (Smart Mode): "${message}" मी समजलो.`;
+    // TEMP dummy smart reply
+    return res.json({
+      reply: `बॉस, मी ऐकत आहे: "${message}". AIX पूर्ण स्मार्ट मोडमध्ये आहे 🔥`
+    });
 
-    res.json({ reply });
   } catch (err) {
-    res.json({ error: "SERVER_ERROR", info: err.toString() });
+    console.error(err);
+    res.status(500).json({ reply: "AIX ERROR: Backend crash झाला" });
   }
 });
 
-// ------------------------------
-//  START SERVER
-// ------------------------------
+// PORT
 const PORT = process.env.PORT || 5000;
-
-app.listen(PORT, () =>
-  console.log(`Boss AIX Backend running on PORT ${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log("Boss AIX Backend running on PORT", PORT);
+});
