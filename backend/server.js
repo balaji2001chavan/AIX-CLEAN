@@ -1,25 +1,33 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// ⭐ CORS FIXED
-app.use(cors({
-  origin: "*",
-  methods: "GET,POST,OPTIONS",
-  allowedHeaders: "Content-Type"
-}));
+// ⭐ Render → Frontend domain allow
+const FRONTEND_URL = "https://boss-aix-frontend.onrender.com";
 
+// ⭐ CORS FIX – MOST IMPORTANT
+app.use(
+  cors({
+    origin: FRONTEND_URL,
+    methods: ["GET", "POST"],
+    allowedHeaders: ["Content-Type"],
+  })
+);
+
+// ⭐ Body parser
 app.use(express.json());
 
-// ⭐ HEALTH CHECK
+// ------------------------------
+//  TEST ROUTE
+// ------------------------------
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// ⭐ MAIN AIX API
+// ------------------------------
+//  AIX MAIN ROUTE
+// ------------------------------
 app.post("/api/aix", async (req, res) => {
   try {
     const { message } = req.body;
@@ -28,20 +36,20 @@ app.post("/api/aix", async (req, res) => {
       return res.json({ error: "NO_MESSAGE" });
     }
 
-    // Render वर Ollama नाही म्हणून mock reply
-    res.json({
-      reply: `AIX: मी ऐकलं → "${message}".  
-      मी Render backend वर चालू आहे.  
-      हे message मी AI सारखे process करतो.`,
-      model: "render-mode"
-    });
+    // TEMPORARY AI REPLY until real model connected
+    const reply = `Boss AIX (Smart Mode): "${message}" मी समजलो.`;
 
+    res.json({ reply });
   } catch (err) {
-    res.json({ error: "SERVER_ERROR", details: err.message });
+    res.json({ error: "SERVER_ERROR", info: err.toString() });
   }
 });
 
-// ⭐ START SERVER
-app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on port", PORT);
-});
+// ------------------------------
+//  START SERVER
+// ------------------------------
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () =>
+  console.log(`Boss AIX Backend running on PORT ${PORT}`)
+);
