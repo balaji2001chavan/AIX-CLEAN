@@ -4,37 +4,54 @@ import cors from "cors";
 const app = express();
 app.use(express.json());
 
-// CORS FIX (Render → Render communication allowed)
+// 🔥 FIX 1 – UNIVERSAL CORS (Render Frontend allowed)
 app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
+  origin: [
+    "https://boss-aix-frontend.onrender.com",
+    "http://localhost:3000",
+    "*"
+  ],
+  methods: "GET,POST",
+  allowedHeaders: "Content-Type"
 }));
 
-// SIMPLE HEALTH CHECK
+// 🔥 HEALTH CHECK
 app.get("/", (req, res) => {
   res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// AIX MAIN ENDPOINT (Frontend याचला हिट करते)
-app.post("/api/aix", (req, res) => {
-  const { message } = req.body;
+// 🔥 FIX 2 – CREATE WORKING /api/aix ENDPOINT
+app.post("/api/aix", async (req, res) => {
+  try {
+    const message = req.body.message || "";
 
-  if (!message) {
-    return res.json({ error: "NO_MESSAGE" });
+    if (!message.trim()) {
+      return res.json({ reply: "काहीतरी बोला मी ऐकतोय बॉस ❤️" });
+    }
+
+    // SIMPLE SMART AI RESPONSE (Later we connect Ollama/Groq)
+    let reply = "";
+
+    if (message.includes("कोण आहेस") || message.includes("who are you")) {
+      reply = "मी Boss AIX — तुमचा स्मार्ट AI साथीदार 🔥";
+    }
+    else if (message.includes("चालू आहेस")) {
+      reply = "हो बॉस, मी पूर्णपणे चालू आहे! आदेश द्या. 🚀";
+    }
+    else {
+      reply = "मी इथे आहे बॉस, तुम्हाला मदत करण्यासाठी तयार आहे ❤️";
+    }
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error(err);
+    res.json({ reply: "AIX ERROR: काहीतरी गडबड झाली!" });
   }
-
-  // TEMP REPLY (फिलहाल ChatGPT-स्टाइल स्मूथ)
-  let reply = `Boss AIX: मला तुझं म्हणणं कळलं — "${message}". आता पुढचा आदेश दे Boss.`;
-
-  res.json({
-    ok: true,
-    reply: reply
-  });
 });
 
-// PORT CONFIG
+// 🔥 START SERVER
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on port", PORT);
+  console.log(`Boss AIX Backend running on PORT ${PORT}`);
 });
