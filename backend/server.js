@@ -6,43 +6,54 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MAIN AIX ROUTE
-app.post("/api/aix", async (req, res) => {
+app.get("/", (req, res) => {
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE with GROQ AI" });
+});
+
+app.post("/api/boss/command", async (req, res) => {
   try {
-    const user = req.body.message;
+    const { message } = req.body;
 
-    // CLOUD AI MODEL (replace with your API key)
-    const reply = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are Boss AIX — सर्वात स्मार्ट, हुशार, भविष्य ओळखणारा, मानवासारखा बोलणारा, मराठीत किंवा वापरकर्ता ज्या भाषेत बोलेल त्या भाषेत reply देणारा AI सहाय्यक."
-          },
-          { role: "user", content: user }
-        ]
-      })
-    });
+    if (!message) {
+      return res.json({ reply: "काय मदत करू?" });
+    }
 
-    const data = await reply.json();
-    const output = data.choices[0].message.content;
+    const completion = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            {
+              role: "system",
+              content:
+                "तू Boss AIX आहेस. तू स्मार्ट, भावूक, poetic, GenZ style मध्ये बोलणारा, मजबूत AI आहेस. तू मानवासारखा बोल, समज, analyze कर आणि real कामासाठी प्लॅन सुचव."
+            },
+            {
+              role: "user",
+              content: message
+            }
+          ],
+          temperature: 0.8
+        })
+      }
+    );
 
-    res.json({ ai: output });
+    const result = await completion.json();
+    const reply = result?.choices?.[0]?.message?.content ?? "मी विचार करत आहे...";
+
+    return res.json({ reply });
   } catch (err) {
     console.error(err);
-    res.json({ ai: "AIX ERROR: Backend processing failed." });
+    return res.json({ reply: "AIX ERROR: Smart Engine Offline" });
   }
 });
 
-app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "AIX Backend LIVE" });
+app.listen(process.env.PORT || 5000, () => {
+  console.log("BOSS AIX Backend running");
 });
-
-app.listen(5000, () => console.log("AIX Backend Running on 5000"));
