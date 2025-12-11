@@ -1,51 +1,61 @@
+// FINAL BOSS AIX BACKEND (Render + Local + CORS FIXED)
+
 import express from "express";
 import cors from "cors";
 import fetch from "node-fetch";
 
 const app = express();
-
 app.use(express.json());
 
-// ⭐ FINAL CORS FIX (Render allowed)
-app.use(
-  cors({
+// ✅ CORS — FRONTEND URL ALLOWED
+app.use(cors({
     origin: [
-      "https://boss-aix-frontend.onrender.com",
-      "http://localhost:3000",
-      "*"
+        "https://boss-aix-frontend.onrender.com",
+        "http://localhost:3000"
     ],
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type"],
-  })
-);
+}));
 
-// TEST ROUTE
+// 🟢 HEALTH CHECK
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
+    res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
-// ⭐ MAIN API
+// 🟡 MAIN AIX ROUTE
 app.post("/api/aix", async (req, res) => {
-  try {
-    const message = req.body.message || "Hello";
+    try {
+        const user = req.body.message || "";
 
-    // call to ollama or groq (replace as per your setup)
-    const reply = `AIX Reply: मी ऑनलाइन आहे. तुम्ही म्हणाल ते मी समजून करीन.`;
+        if (!user.trim()) {
+            return res.json({ text: "रिकामा संदेश मिळाला." });
+        }
 
-    res.json({
-      success: true,
-      reply,
-    });
+        // --- Replace YOUR_MODEL with your actual model (ex: llama3.2) ---
+        const ollamaResp = await fetch("http://localhost:11434/api/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "llama3.2",
+                prompt: user,
+                stream: false
+            })
+        });
 
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: "AIX INTERNAL ERROR",
-      detail: err.message,
-    });
-  }
+        const data = await ollamaResp.json();
+
+        return res.json({
+            text: data?.response || "AIX: रिकामा प्रतिसाद.",
+            model: "llama3.2"
+        });
+
+    } catch (err) {
+        console.error("AIX ERROR:", err);
+        return res.json({ text: "AIX ERROR: Ollama चालू नाही किंवा backend error." });
+    }
 });
 
-// RUN SERVER
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Boss AIX Backend running on ${PORT}`));
+app.listen(PORT, () => {
+    console.log("🔥 Boss AIX Backend running on PORT:", PORT);
+});
