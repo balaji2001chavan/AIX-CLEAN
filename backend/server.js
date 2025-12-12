@@ -1,57 +1,29 @@
 import express from "express";
 import cors from "cors";
-import bodyParser from "body-parser";
-import { brainResponse } from "./ai/brain.js";
+import path from "path";
+import { fileURLToPath } from "url";
+import { AIX_MASTER } from "./aix.master.engine.js";
 
 const app = express();
+app.use(express.json());
+app.use(cors());
 
-// ---------------------
-// CORS FIX – REQUIRED
-// ---------------------
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-  allowedHeaders: ["Content-Type"]
-}));
+// RUN MASTER AUTO FIX
+AIX_MASTER.runSelfRepair(app);
 
-app.use(bodyParser.json());
+// AUTO LOAD ROUTES
+import aixRoute from "./routes/aix.js";
+app.use("/api/aix", aixRoute);
 
-// ---------------------
-// HEALTH CHECK
-// ---------------------
 app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
-});
-
-// -------------------------
-// MAIN AIX ROUTE (FRONTEND calls this)
-// -------------------------
-app.post("/api/aix", async (req, res) => {
-  try {
-    const message = req.body.message;
-
-    if (!message) {
-      return res.status(400).json({ error: "MESSAGE_REQUIRED" });
-    }
-
-    const reply = await brainResponse(message);
-
     res.json({
-      boss: true,
-      reply: reply,
-      heard: message
+        ok: true,
+        msg: "🔥 Boss AIX Backend LIVE",
+        time: new Date().toISOString()
     });
-
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    res.status(500).json({ error: "AIX_FAILED", details: err.message });
-  }
 });
 
-// ---------------------
-// START SERVER
-// ---------------------
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on port", PORT);
+    console.log(`🚀 BOSS AIX BACKEND LIVE on ${PORT}`);
 });
