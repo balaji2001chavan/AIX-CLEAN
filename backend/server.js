@@ -1,29 +1,56 @@
+// ==============================
+// BOSS AIX – FINAL BACKEND CORE
+// ==============================
+
 import express from "express";
 import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import { AIX_MASTER } from "./aix.master.engine.js";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 
-// RUN MASTER AUTO FIX
-AIX_MASTER.runSelfRepair(app);
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+}));
 
-// AUTO LOAD ROUTES
-import aixRoute from "./routes/aix.js";
-app.use("/api/aix", aixRoute);
-
+// 🔥 HEALTH CHECK
 app.get("/", (req, res) => {
-    res.json({
-        ok: true,
-        msg: "🔥 Boss AIX Backend LIVE",
-        time: new Date().toISOString()
-    });
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE", time: new Date() });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`🚀 BOSS AIX BACKEND LIVE on ${PORT}`);
+// 🔥 MAIN AIX REPLY ENGINE
+app.post("/api/aix", async (req, res) => {
+  try {
+    const msg = req.body.message;
+    if (!msg) return res.status(400).json({ error: "MESSAGE_REQUIRED" });
+
+    // MODEL → llama3.2 or phi3
+    const ollamaRes = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+
+      body: JSON.stringify({
+        model: "llama3.2",
+        prompt: `तू Boss AIX आहेस. तू माणसासारखे बोलशील, भावना ठेवशील, 
+समोरचा काय म्हणतो ते समजशील.
+उत्तर नैसर्गिक, स्पष्ट, conversational दे.
+User म्हणाला: "${msg}"`,
+        stream: false,
+      }),
+    });
+
+    const data = await ollamaRes.json();
+
+    return res.json({
+      boss: true,
+      reply: data.response || "मी तयार आहे.",
+      model: "llama3.2",
+    });
+
+  } catch (err) {
+    return res.status(500).json({ error: "AIX_INTERNAL_ERROR", details: err.message });
+  }
 });
+
+app.listen(5000, () => console.log("🔥 Boss AIX Backend running on 5000"));
