@@ -1,14 +1,19 @@
 import express from "express";
-import { autonomousAIX } from "../aix-autonomous.js";
+import { AIX_SOUL } from "../system/AIX-SOUL.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  const msg = req.body.message;
-  if (!msg) return res.json({ error: "MESSAGE_REQUIRED" });
+    try {
+        const { message } = req.body;
+        if (!message) return res.json({ error: "MESSAGE_REQUIRED" });
 
-  const out = await autonomousAIX(msg);
-  return res.json(out);
+        const response = await AIX_SOUL(message);
+        res.json(response);
+
+    } catch (err) {
+        res.status(500).json({ error: err.toString() });
+    }
 });
 
 export default router;
