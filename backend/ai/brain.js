@@ -1,39 +1,29 @@
-// backend/ai/brain.js
 import fetch from "node-fetch";
 
-export async function brainResponse(message) {
+export async function runBrain(message) {
   try {
-    // Safety: रिकामा मेसेज आला तर
-    if (!message || message.trim() === "") {
-      return "मी ऐकतोय… बोला.";
-    }
+    const prompt = `You are Boss AIX. Talk like a smart, friendly assistant. 
+    User said: "${message}". Give a clear helpful reply.`;
 
-    // GROQ किंवा GPT-सारखा कॉल
-    const groqKey = process.env.GROQ_API_KEY;
-
-    const body = {
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: "You are Boss AIX: एक अत्यंत बुद्धिमान, मानवासारखा, autonomous AI OS. तू प्रत्येक गोष्ट समजतोस, plan करतोस, आणि user साठी रिअल कामे करतोस." },
-        { role: "user", content: message }
-      ]
-    };
-
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${groqKey}`,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [
+          { role: "user", content: prompt }
+        ]
+      })
     });
 
-    const json = await res.json();
-
-    return json?.choices?.[0]?.message?.content || "मी विचार करत आहे…";
+    const data = await resp.json();
+    return data.choices?.[0]?.message?.content || "मला नीट समजलं नाही.";
   }
-
-  catch (e) {
-    return "AIX ERROR: Brain compute समस्या.";
+  catch (err) {
+    console.error("BRAIN ERROR:", err);
+    return "AIX ERROR: Brain issue.";
   }
 }
