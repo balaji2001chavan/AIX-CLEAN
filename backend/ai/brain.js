@@ -1,29 +1,27 @@
-import fetch from "node-fetch";
+export async function brainResponse(text) {
+  text = text.toLowerCase();
 
-export async function runBrain(message) {
-  try {
-    const prompt = `You are Boss AIX. Talk like a smart, friendly assistant. 
-    User said: "${message}". Give a clear helpful reply.`;
-
-    const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${process.env.GROQ_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [
-          { role: "user", content: prompt }
-        ]
-      })
-    });
-
-    const data = await resp.json();
-    return data.choices?.[0]?.message?.content || "मला नीट समजलं नाही.";
+  // Natural chat
+  if (text.includes("hi") || text.includes("hello")) {
+    return "नमस्कार! मी Boss AIX आहे. सांगू, आज काय करू?";
   }
-  catch (err) {
-    console.error("BRAIN ERROR:", err);
-    return "AIX ERROR: Brain issue.";
+
+  if (text.includes("तू कोण आहेस")) {
+    return "मी Boss AIX – जगातील सर्व काम करणारा autonomous AI OS! 🔥";
   }
+
+  if (text.includes("शॉपिंग")) {
+    return "मी शॉपिंग परिणाम आणतो... (लवकरच LIVE डेटा जोडत आहे)";
+  }
+
+  if (text.includes("प्रॉपर्टी")) {
+    return "मी property शोधत आहे... location सांगा 🏠";
+  }
+
+  if (text.includes("काम")) {
+    return "कृपया कोणते काम ते सांगा. मी लगेच सुरू करतो.";
+  }
+
+  // Default smart reply
+  return `मी तयार आहे। तुम्ही म्हणाल तसं मी करतो → ${text}`;
 }
