@@ -1,27 +1,22 @@
 import express from "express";
 import cors from "cors";
-import aixRoute from "./routes/aix.js";
 
 const app = express();
-
+app.use(express.json());
 app.use(cors({
-  origin: "*",
-  methods: "GET,POST",
-  allowedHeaders: "Content-Type,Authorization"
+    origin: "*",
+    methods: ["GET", "POST"],
 }));
 
-app.use(express.json());
-
-// HEALTH CHECK
-app.get("/", (req, res) => {
-  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
-});
-
-// MAIN ROUTE
+import aixRoute from "./routes/aix.js";
 app.use("/api/aix", aixRoute);
 
-// START SERVER
 const PORT = process.env.PORT || 5000;
+
+app.get("/", (req, res) => {
+    res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
+});
+
 app.listen(PORT, () => {
-  console.log("Boss AIX Backend running on", PORT);
+    console.log("Boss AIX Backend running on " + PORT);
 });
