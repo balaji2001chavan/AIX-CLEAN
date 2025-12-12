@@ -1,22 +1,21 @@
+// backend/server.js
 import express from "express";
 import cors from "cors";
+import aixRoute from "./routes/aix.js";
 
 const app = express();
+app.use(cors());
 app.use(express.json());
-app.use(cors({
-    origin: "*",
-    methods: ["GET", "POST"],
-}));
-
-import aixRoute from "./routes/aix.js";
-app.use("/api/aix", aixRoute);
-
-const PORT = process.env.PORT || 5000;
 
 app.get("/", (req, res) => {
-    res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
+  res.json({ ok: true, msg: "Boss AIX Backend LIVE" });
 });
 
+// MAIN AI ROUTE
+app.use("/api/aix", aixRoute);
+
+// START SERVER
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log("Boss AIX Backend running on " + PORT);
+  console.log(`Boss AIX Backend running on ${PORT}`);
 });
