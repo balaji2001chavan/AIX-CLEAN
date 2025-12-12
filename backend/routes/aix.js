@@ -1,39 +1,27 @@
-// backend/ai/brain.js
-import fetch from "node-fetch";
+import express from "express";
+import { runBrain } from "../ai/brain.js";
 
-export async function brainResponse(message) {
+const router = express.Router();
+
+router.post("/", async (req, res) => {
   try {
-    // Safety: रिकामा मेसेज आला तर
-    if (!message || message.trim() === "") {
-      return "मी ऐकतोय… बोला.";
+    const { message } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "MESSAGE_REQUIRED" });
     }
 
-    // GROQ किंवा GPT-सारखा कॉल
-    const groqKey = process.env.GROQ_API_KEY;
+    const reply = await runBrain(message);
 
-    const body = {
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: "You are Boss AIX: एक अत्यंत बुद्धिमान, मानवासारखा, autonomous AI OS. तू प्रत्येक गोष्ट समजतोस, plan करतोस, आणि user साठी रिअल कामे करतोस." },
-        { role: "user", content: message }
-      ]
-    };
-
-    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${groqKey}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
+    res.json({
+      ok: true,
+      reply
     });
 
-    const json = await res.json();
-
-    return json?.choices?.[0]?.message?.content || "मी विचार करत आहे…";
+  } catch (e) {
+    console.error("AIX ROUTE ERROR:", e);
+    res.status(500).json({ error: "AIX_INTERNAL_ERROR" });
   }
+});
 
-  catch (e) {
-    return "AIX ERROR: Brain compute समस्या.";
-  }
-}
+export default router;
