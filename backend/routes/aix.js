@@ -1,27 +1,21 @@
 import express from "express";
-import { runBrain } from "../ai/brain.js";
 
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  try {
-    const { message } = req.body;
+  const msg = req.body.message;
 
-    if (!message) {
-      return res.status(400).json({ error: "MESSAGE_REQUIRED" });
-    }
-
-    const reply = await runBrain(message);
-
-    res.json({
-      ok: true,
-      reply
-    });
-
-  } catch (e) {
-    console.error("AIX ROUTE ERROR:", e);
-    res.status(500).json({ error: "AIX_INTERNAL_ERROR" });
+  if (!msg) {
+    return res.json({ error: "MESSAGE_REQUIRED" });
   }
+
+  // TEMP SMART AI RESPONSE (later autonomous system connect करू)
+  const reply = `Boss AIX: मी तुझा मेसेज समजलो → ${msg}`;
+
+  res.json({
+    ok: true,
+    reply
+  });
 });
 
 export default router;
