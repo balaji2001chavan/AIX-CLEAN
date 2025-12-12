@@ -4,26 +4,18 @@ import { brainResponse } from "../ai/brain.js";
 const router = express.Router();
 
 router.post("/", async (req, res) => {
-  try {
-    const { message } = req.body;
+    const msg = req.body.message;
 
-    if (!message) {
-      return res.status(400).json({ error: "MESSAGE_REQUIRED" });
+    if (!msg) {
+        return res.status(400).json({ error: "MESSAGE_REQUIRED" });
     }
 
-    const reply = brainResponse(message);
-
-    return res.json({
-      boss: true,
-      heard: message,
-      reply: reply,
-      success: true
-    });
-
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    return res.status(500).json({ error: "AIX_FAILED" });
-  }
+    try {
+        const reply = await brainResponse(msg);
+        res.json({ boss: "AIX", reply });
+    } catch (err) {
+        res.status(500).json({ error: "AI_FAILED", details: err.message });
+    }
 });
 
 export default router;
