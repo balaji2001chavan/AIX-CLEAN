@@ -1,27 +1,12 @@
-export function parseCommand(text) {
+export function parseCommand(text = "") {
   const lines = text.split("\n");
+  const cmd = { goal: "", context: "", rules: "", output: "" };
 
-  const command = {
-    goal: "",
-    context: "",
-    rules: "",
-    output: ""
-  };
-
-  for (let line of lines) {
-    if (line.startsWith("GOAL:")) {
-      command.goal = line.replace("GOAL:", "").trim();
-    }
-    if (line.startsWith("CONTEXT:")) {
-      command.context = line.replace("CONTEXT:", "").trim();
-    }
-    if (line.startsWith("RULES:")) {
-      command.rules = line.replace("RULES:", "").trim();
-    }
-    if (line.startsWith("OUTPUT:")) {
-      command.output = line.replace("OUTPUT:", "").trim();
-    }
+  for (let l of lines) {
+    if (l.startsWith("GOAL:")) cmd.goal = l.replace("GOAL:", "").trim();
+    if (l.startsWith("CONTEXT:")) cmd.context = l.replace("CONTEXT:", "").trim();
+    if (l.startsWith("RULES:")) cmd.rules = l.replace("RULES:", "").trim();
+    if (l.startsWith("OUTPUT:")) cmd.output = l.replace("OUTPUT:", "").trim();
   }
-
-  return command;
+  return cmd;
 }
