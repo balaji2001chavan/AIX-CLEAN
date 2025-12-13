@@ -18,7 +18,7 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("AIX CORE IS LIVE");
 });
-
+ 
 // API TEST (GET)
 app.get("/api/aix", (req, res) => {
   res.json({ status: "AIX API endpoint is reachable (GET test)" });
