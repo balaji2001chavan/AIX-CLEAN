@@ -2,13 +2,11 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 
-// AIX CORE
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
-import { recordVideo } from "./aix-core/executors/web/recordVideo.js";
+import { autoSuggestNext } from "./aix-core/core/planner/autoSuggest.js";
 
-// EXECUTORS
 import { createFile } from "./aix-core/executors/files/createFile.js";
 import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
 
@@ -16,92 +14,51 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 👉 Serve AIX output (screenshots, files)
-app.use(
-  "/aix-output",
-  express.static(path.join(process.cwd(), "aix-output")) 
-);
+app.use("/aix-output", express.static(path.join(process.cwd(), "aix-output")));
 
-// HEALTH
-app.get("/", (req, res) => {
-  res.send("AIX CORE IS LIVE");
-});
+app.get("/", (_, res) => res.send("AIX CORE LIVE"));
 
-// TEST
-app.get("/api/aix", (req, res) => {
-  res.json({ status: "AIX API reachable" });
-});
-
-// MAIN AIX API
 app.post("/api/aix", async (req, res) => {
-  try {
-    const { message } = req.body;
+  const command = parseCommand(req.body.message);
+  const plan = createPlan(command);
 
-    const command = parseCommand(message);
-    const state = getState();
-    const plan = createPlan(command, state);
+  let result = "Planned only";
 
-    let result = "Only planning done";
-    let imageUrl = null;
-
-    // FILE EXECUTOR
-    if (
-      command.goal.toLowerCase().includes("html") &&
-      command.output.toLowerCase().includes("html")
-    ) {
-      const html = `
-<!DOCTYPE html>
-<html>
-<head><title>AIX Demo</title></head>
-<body>
-  <h1>Hello from AIX</h1>
-  <p>This file was created by AIX.</p>
-</body>
-</html>
-`;
-      const filePath = createFile("demo.html", html);
-      updateState("HTML file created");
-      result = `HTML file created at ${filePath}`;
-    }
-// VIDEO EXECUTOR
-if (command.goal.toLowerCase().includes("video")) {
-  const targetUrl = "https://example.com";
-  const videoUrl = await recordVideo(targetUrl);
-  updateState("Video recorded");
-  return res.json({
-    command,
-    plan,
-    result: "Video recorded successfully",
-    videoUrl,
-    state: getState()
-  });
-}
-    // SCREENSHOT EXECUTOR
-    if (command.goal.toLowerCase().includes("screenshot")) {
-      const targetUrl = "https://example.com";
-      await takeScreenshot(targetUrl);
-      updateState("Screenshot taken");
-      result = "Screenshot taken successfully";
-      imageUrl = "/aix-output/screenshot.png";
-    }
-
-    res.json({
-      command,
-      plan,
-      result,
-      imageUrl,
-      state: getState()
-    });
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    res.status(500).json({
-      error: "AIX internal error",
-      details: err.message
-    });
+  if (command.goal.includes("HTML")) {
+    createFile("demo.html", "<h1>Hello from AIX</h1>");
+    updateState("HTML created");
+    result = "HTML created";
   }
+
+  if (command.goal.includes("screenshot")) {
+    const img = await takeScreenshot("https://example.com");
+    updateState("Screenshot taken");
+    result = img;
+  }
+
+  res.json({ command, plan, result, state: getState() });
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => {
-  console.log("AIX CORE running on port", PORT);
+app.get("/api/aix/suggest", (_, res) => {
+  res.json(autoSuggestNext(getState()));
 });
+
+app.post("/api/aix/approve", async (req, res) => {
+  const { action } = req.body;
+  let r = "No action";
+
+  if (action === "create_html") {
+    createFile("auto.html", "<h1>Auto AIX</h1>");
+    updateState("HTML auto created");
+    r = "HTML auto created";
+  }
+
+  if (action === "take_screenshot") {
+    r = await takeScreenshot("https://example.com");
+    updateState("Screenshot auto taken");
+  }
+
+  res.json({ result: r, state: getState() });
+});
+
+app.listen(10000, () => console.log("AIX running"));
