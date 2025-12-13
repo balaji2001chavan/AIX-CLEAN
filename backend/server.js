@@ -1,32 +1,51 @@
 import express from "express";
 import cors from "cors";
 
+// AIX CORE
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
+
+// EXECUTORS
 import { createFile } from "./aix-core/executors/files/createFile.js";
+import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// HEALTH CHECK
+app.get("/", (req, res) => {
+  res.send("AIX CORE IS LIVE");
+});
+
+// API TEST (GET)
 app.get("/api/aix", (req, res) => {
   res.json({ status: "AIX API endpoint is reachable (GET test)" });
 });
 
-app.post("/api/aix", (req, res) => {
-  const { message } = req.body;
+// MAIN AIX ENDPOINT
+app.post("/api/aix", async (req, res) => {
+  try {
+    const { message } = req.body;
 
-  const command = parseCommand(message);
-  const state = getState();
-  const plan = createPlan(command, state);
+    // 1. Parse command
+    const command = parseCommand(message);
 
-  let result = "Only planning done";
+    // 2. Load state
+    const state = getState();
 
-  if (
-    command.goal.toLowerCase().includes("html") &&
-    command.output.toLowerCase().includes("html")
-  ) {
-    const htmlContent = `
+    // 3. Plan
+    const plan = createPlan(command, state);
+
+    let result = "Only planning done";
+
+    // 4. FILE EXECUTOR (HTML)
+    if (
+      command.goal.toLowerCase().includes("html") &&
+      command.output.toLowerCase().includes("html")
+    ) {
+      const htmlContent = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -38,24 +57,37 @@ app.post("/api/aix", (req, res) => {
 </body>
 </html>
 `;
+      const filePath = createFile("demo.html", htmlContent);
+      updateState("HTML file created");
+      result = `HTML file created at ${filePath}`;
+    }
 
-    const filePath = createFile("demo.html", htmlContent);
-    result = `HTML file created at ${filePath}`;
-    updateState("HTML demo file created");
+    // 5. SCREENSHOT EXECUTOR
+    if (command.goal.toLowerCase().includes("screenshot")) {
+      const url = "https://example.com";
+      const shotPath = await takeScreenshot(url);
+      updateState("Website screenshot taken");
+      result = `Screenshot saved at ${shotPath}`;
+    }
+
+    // 6. Response
+    res.json({
+      command,
+      plan,
+      result,
+      state: getState()
+    });
+
+  } catch (err) {
+    console.error("AIX ERROR:", err);
+    res.status(500).json({
+      error: "AIX internal error",
+      details: err.message
+    });
   }
-
-  res.json({
-    command,
-    plan,
-    result,
-    state: getState()
-  });
 });
 
-app.get("/", (req, res) => {
-  res.send("AIX CORE IS LIVE");
-});
-
+// START SERVER
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
   console.log("AIX CORE running on port", PORT);
