@@ -19,11 +19,9 @@ app.post("/api/ask", async (req, res) => {
     return res.json({ reply: "❌ Prompt missing" });
   }
 
-  // 🔴 If no API key
   if (!GROQ_API_KEY) {
     return res.json({
-      reply:
-        "⚠️ GROQ_API_KEY missing. Backend OK, AI disabled."
+      reply: "❌ GROQ_API_KEY missing in Render env"
     });
   }
 
@@ -33,14 +31,21 @@ app.post("/api/ask", async (req, res) => {
       {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          Authorization: `Bearer ${GROQ_API_KEY}`,
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: "llama3-70b-8192",   // 🔥 IMPORTANT CHANGE
+          model: "llama3-8b-8192",   // ✅ FIXED MODEL
           messages: [
-            { role: "system", content: "You are AIX." },
-            { role: "user", content: prompt }
+            {
+              role: "system",
+              content:
+                "You are BOSS AIX. Reply clearly in Marathi or English."
+            },
+            {
+              role: "user",
+              content: prompt
+            }
           ]
         })
       }
@@ -48,23 +53,15 @@ app.post("/api/ask", async (req, res) => {
 
     const data = await response.json();
 
-    // 🔥 LOG EVERYTHING (Render logs)
-    console.log("🔍 GROQ RAW RESPONSE:", JSON.stringify(data));
-
     if (data.error) {
       return res.json({
         reply: "❌ Groq error: " + data.error.message
       });
     }
 
-    const reply = data?.choices?.[0]?.message?.content;
-
-    if (!reply) {
-      return res.json({
-        reply:
-          "⚠️ Groq responded but no text. Check Render logs for RAW response."
-      });
-    }
+    const reply =
+      data?.choices?.[0]?.message?.content ||
+      "⚠️ AI responded but no text";
 
     return res.json({ reply });
 
@@ -77,5 +74,5 @@ app.post("/api/ask", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("🚀 AIX Backend running on port", PORT);
+  console.log("🚀 AIX Backend running with Groq on port", PORT);
 });
