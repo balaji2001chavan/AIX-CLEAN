@@ -1,0 +1,6 @@
+{
+  "file_create": "allowed",
+  "code_change": "ask",
+  "deploy": "blocked",
+  "payment": "blocked"
+}
