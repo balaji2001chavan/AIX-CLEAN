@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import aiRouter from "./ai/ai.routes.js";
 
 const app = express();
 
@@ -11,9 +10,27 @@ app.get("/", (req, res) => {
   res.json({ status: "AIX Backend Alive" });
 });
 
-app.use("/api/ask", aiRouter);
+app.post("/api/ask", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+
+    // 🔥 FORCE REPLY (DEBUG MODE)
+    if (!prompt) {
+      return res.json({ reply: "❌ Prompt missing from request" });
+    }
+
+    return res.json({
+      reply: "✅ Backend received your message: " + prompt
+    });
+
+  } catch (err) {
+    return res.json({
+      reply: "❌ Backend error: " + err.message
+    });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log("AIX Backend running on port", PORT);
+  console.log("🔥 AIX Backend DEBUG running on port", PORT);
 });
