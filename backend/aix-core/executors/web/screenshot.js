@@ -8,11 +8,15 @@ export async function takeScreenshot(url) {
 
   const filePath = path.join(outDir, "screenshot.png");
 
-  const browser = await chromium.launch();
-  const page = await browser.newPage();
-  await page.goto(url, { waitUntil: "networkidle" });
-  await page.screenshot({ path: filePath, fullPage: true });
-  await browser.close();
+  const browser = await chromium.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox"]
+  });
 
+  const page = await browser.newPage();
+  await page.goto(url, { waitUntil: "networkidle", timeout: 60000 });
+  await page.screenshot({ path: filePath, fullPage: true });
+
+  await browser.close();
   return filePath;
 }
