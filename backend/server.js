@@ -18,7 +18,7 @@ app.use(express.json());
 // 👉 Serve AIX output (screenshots, files)
 app.use(
   "/aix-output",
-  express.static(path.join(process.cwd(), "aix-output"))
+  express.static(path.join(process.cwd(), "aix-output")) 
 );
 
 // HEALTH
