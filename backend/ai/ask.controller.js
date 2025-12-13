@@ -11,7 +11,8 @@ import { createFile } from "../tools/file.tool.js";
 import { gitCommitAndPush } from "../tools/git.tool.js";
 import { writeCodeFile } from "../tools/code.tool.js";
 const GROQ_API_KEY = process.env.GROQ_API_KEY;
-
+import { planSteps } from "../agent/planner.js";
+import { executeSteps } from "../agent/executor.js";
 // -----------------------------
 // MAIN ENTRY FUNCTION
 // -----------------------------
@@ -19,7 +20,29 @@ export async function askAI(prompt) {
   if (!prompt) return "❌ Prompt missing";
 
   const text = prompt.toLowerCase().trim();
+// =============================
+// AGENT MODE: PLANNER + EXECUTOR
+// =============================
+if (
+  prompt.toLowerCase().includes("plan") ||
+  prompt.toLowerCase().includes("एकत्र") ||
+  prompt.toLowerCase().includes("सर्व")
+) {
+  const steps = planSteps(prompt);
 
+  if (!steps.length) {
+    return "⚠️ कोणतेही steps ओळखता आले नाहीत";
+  }
+
+  const results = await executeSteps(steps);
+
+  return (
+    "🧠 AIX PLAN:\n" +
+    steps.map((s, i) => `${i + 1}. ${s.action}`).join("\n") +
+    "\n\n🚀 EXECUTION RESULT:\n" +
+    results.join("\n")
+  );
+}
   // =============================
   // STEP 1: FILE CREATION INTENT
   // =============================
