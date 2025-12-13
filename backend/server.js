@@ -9,20 +9,19 @@ app.use(express.json());
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 app.get("/", (req, res) => {
-  res.json({ status: "AIX Backend Alive (Gemini Stable)" });
+  res.json({ status: "AIX Backend Alive (Gemini v1beta)" });
 });
 
 function extractText(data) {
   if (!data || !data.candidates) return null;
 
   for (const cand of data.candidates) {
-    if (!cand.content || !cand.content.parts) continue;
+    const parts = cand?.content?.parts;
+    if (!parts) continue;
 
     let text = "";
-    for (const part of cand.content.parts) {
-      if (typeof part.text === "string") {
-        text += part.text;
-      }
+    for (const p of parts) {
+      if (typeof p.text === "string") text += p.text;
     }
     if (text.trim()) return text.trim();
   }
@@ -44,7 +43,7 @@ app.post("/api/ask", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,15 +59,20 @@ app.post("/api/ask", async (req, res) => {
     );
 
     const data = await response.json();
-
     console.log("🔍 GEMINI RAW:", JSON.stringify(data));
+
+    if (data.error) {
+      return res.json({
+        reply: "❌ Gemini error: " + data.error.message
+      });
+    }
 
     const reply = extractText(data);
 
     if (!reply) {
       return res.json({
         reply:
-          "⚠️ Gemini replied but content was blocked or empty. Try rephrasing."
+          "⚠️ Gemini replied but text was blocked. Try a different prompt."
       });
     }
 
@@ -83,5 +87,5 @@ app.post("/api/ask", async (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("🚀 AIX Backend running with Gemini (stable) on port", PORT);
+  console.log("🚀 AIX Backend running with Gemini v1beta on port", PORT);
 });
