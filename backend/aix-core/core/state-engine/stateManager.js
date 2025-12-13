@@ -1,15 +1,35 @@
 import fs from "fs";
 import path from "path";
 
-const statePath = path.join(process.cwd(), "backend/aix-core/core/state-engine/state.json");
+const statePath = path.join(
+  process.cwd(),
+  "aix-core/core/state-engine/state.json"
+);
 
 export function getState() {
-  const raw = fs.readFileSync(statePath);
+  if (!fs.existsSync(statePath)) {
+    fs.writeFileSync(
+      statePath,
+      JSON.stringify(
+        {
+          project: "AIX",
+          features: [],
+          lastAction: "",
+          history: []
+        },
+        null,
+        2
+      )
+    );
+  }
+
+  const raw = fs.readFileSync(statePath, "utf-8");
   return JSON.parse(raw);
 }
 
 export function updateState(action) {
   const state = getState();
+
   state.lastAction = action;
   state.history.push({
     action,
