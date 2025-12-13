@@ -17,5 +17,5 @@ export function writeCodeFile(filename, code) {
     success: true,
     path: filePath,
     lines: code.split("\n").length
-  };
+  }; 
 }
