@@ -9,8 +9,25 @@ app.use(express.json());
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 app.get("/", (req, res) => {
-  res.json({ status: "AIX Backend Alive (Gemini 1.5)" });
+  res.json({ status: "AIX Backend Alive (Gemini Stable)" });
 });
+
+function extractText(data) {
+  if (!data || !data.candidates) return null;
+
+  for (const cand of data.candidates) {
+    if (!cand.content || !cand.content.parts) continue;
+
+    let text = "";
+    for (const part of cand.content.parts) {
+      if (typeof part.text === "string") {
+        text += part.text;
+      }
+    }
+    if (text.trim()) return text.trim();
+  }
+  return null;
+}
 
 app.post("/api/ask", async (req, res) => {
   const { prompt } = req.body;
@@ -30,9 +47,7 @@ app.post("/api/ask", async (req, res) => {
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [
             {
@@ -46,14 +61,14 @@ app.post("/api/ask", async (req, res) => {
 
     const data = await response.json();
 
-    console.log("🔍 GEMINI RAW RESPONSE:", JSON.stringify(data));
+    console.log("🔍 GEMINI RAW:", JSON.stringify(data));
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const reply = extractText(data);
 
     if (!reply) {
       return res.json({
-        reply: "⚠️ Gemini responded but no text"
+        reply:
+          "⚠️ Gemini replied but content was blocked or empty. Try rephrasing."
       });
     }
 
@@ -68,5 +83,5 @@ app.post("/api/ask", async (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("🚀 AIX Backend running with Gemini 1.5 on port", PORT);
+  console.log("🚀 AIX Backend running with Gemini (stable) on port", PORT);
 });
