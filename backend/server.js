@@ -8,6 +8,9 @@ import { createPlan } from "./aix-core/core/planner/planner.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.get("/api/aix", (req, res) => {
+  res.json({ status: "AIX API endpoint is reachable (GET test)" });
+});
 
 app.post("/api/aix", (req, res) => {
   const { message } = req.body;
