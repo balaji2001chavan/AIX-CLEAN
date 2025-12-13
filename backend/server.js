@@ -9,7 +9,7 @@ app.use(express.json());
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 app.get("/", (req, res) => {
-  res.json({ status: "AIX Backend Alive (Gemini)" });
+  res.json({ status: "AIX Backend Alive (Gemini OK)" });
 });
 
 app.post("/api/ask", async (req, res) => {
@@ -30,10 +30,13 @@ app.post("/api/ask", async (req, res) => {
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({
           contents: [
             {
+              role: "user",
               parts: [{ text: prompt }]
             }
           ]
@@ -43,12 +46,27 @@ app.post("/api/ask", async (req, res) => {
 
     const data = await response.json();
 
-    const reply =
-      data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    console.log("🔍 GEMINI RAW RESPONSE:", JSON.stringify(data));
+
+    // ✅ CORRECT & SAFE TEXT EXTRACTION
+    let reply = null;
+
+    if (
+      data &&
+      data.candidates &&
+      data.candidates[0] &&
+      data.candidates[0].content &&
+      data.candidates[0].content.parts &&
+      data.candidates[0].content.parts[0] &&
+      data.candidates[0].content.parts[0].text
+    ) {
+      reply = data.candidates[0].content.parts[0].text;
+    }
 
     if (!reply) {
       return res.json({
-        reply: "⚠️ Gemini responded but no text"
+        reply:
+          "⚠️ Gemini responded but text not found. Check Render logs."
       });
     }
 
