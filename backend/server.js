@@ -6,6 +6,7 @@ import path from "path";
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
+import { recordVideo } from "./aix-core/executors/web/recordVideo.js";
 
 // EXECUTORS
 import { createFile } from "./aix-core/executors/files/createFile.js";
@@ -62,7 +63,19 @@ app.post("/api/aix", async (req, res) => {
       updateState("HTML file created");
       result = `HTML file created at ${filePath}`;
     }
-
+// VIDEO EXECUTOR
+if (command.goal.toLowerCase().includes("video")) {
+  const targetUrl = "https://example.com";
+  const videoUrl = await recordVideo(targetUrl);
+  updateState("Video recorded");
+  return res.json({
+    command,
+    plan,
+    result: "Video recorded successfully",
+    videoUrl,
+    state: getState()
+  });
+}
     // SCREENSHOT EXECUTOR
     if (command.goal.toLowerCase().includes("screenshot")) {
       const targetUrl = "https://example.com";
