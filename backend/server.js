@@ -1,91 +1,35 @@
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
+
+import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
+import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
+import { createPlan } from "./aix-core/core/planner/planner.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+app.post("/api/aix", (req, res) => {
+  const { message } = req.body;
 
-app.get("/", (req, res) => {
-  res.json({ status: "AIX Backend Alive (Gemini v1beta)" });
+  const command = parseCommand(message);
+  const state = getState();
+  const plan = createPlan(command, state);
+
+  updateState(`Planned: ${command.goal}`);
+
+  res.json({
+    command,
+    plan,
+    state
+  });
 });
 
-function extractText(data) {
-  if (!data || !data.candidates) return null;
-
-  for (const cand of data.candidates) {
-    const parts = cand?.content?.parts;
-    if (!parts) continue;
-
-    let text = "";
-    for (const p of parts) {
-      if (typeof p.text === "string") text += p.text;
-    }
-    if (text.trim()) return text.trim();
-  }
-  return null;
-}
-
-app.post("/api/ask", async (req, res) => {
-  const { prompt } = req.body;
-
-  if (!prompt) {
-    return res.json({ reply: "❌ Prompt missing" });
-  }
-
-  if (!GEMINI_API_KEY) {
-    return res.json({
-      reply: "❌ GEMINI_API_KEY missing in Render env"
-    });
-  }
-
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: prompt }]
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await response.json();
-    console.log("🔍 GEMINI RAW:", JSON.stringify(data));
-
-    if (data.error) {
-      return res.json({
-        reply: "❌ Gemini error: " + data.error.message
-      });
-    }
-
-    const reply = extractText(data);
-
-    if (!reply) {
-      return res.json({
-        reply:
-          "⚠️ Gemini replied but text was blocked. Try a different prompt."
-      });
-    }
-
-    return res.json({ reply });
-
-  } catch (err) {
-    return res.json({
-      reply: "❌ Gemini request failed: " + err.message
-    });
-  }
+app.get("/", (req, res) => {
+  res.send("AIX CORE IS LIVE");
 });
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("🚀 AIX Backend running with Gemini v1beta on port", PORT);
+  console.log("AIX CORE running on port", PORT);
 });
