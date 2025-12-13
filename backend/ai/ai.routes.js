@@ -1,18 +1,18 @@
 import express from "express";
-import cors from "cors";
-import askRouter from "./ai/ai.routes.js";
+import { askAI } from "./ask.controller.js";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const router = express.Router();
 
-app.get("/", (req, res) => {
-  res.json({ status: "AIX Backend Alive" });
+router.post("/", async (req, res) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) return res.status(400).json({ error: "Prompt missing" });
+
+    const reply = await askAI(prompt);
+    res.json({ reply });
+  } catch (err) {
+    res.status(500).json({ error: "AI failed", detail: err.message });
+  }
 });
 
-app.use("/api/ask", askRouter);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log("🚀 AIX Backend Running on PORT", PORT);
-});
+export default router;
