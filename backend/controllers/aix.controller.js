@@ -1,7 +1,7 @@
 import { reasoningEngine } from "../brain/reasoning.js";
 import { decisionEngine } from "../brain/decision.js";
 import { ethicsCheck } from "../brain/ethics.js";
-
+import { executeAction } from "../action/action.executor.js";
 export async function aixCommand(req, res) {
   try {
     const input = req.body.query;
@@ -23,7 +23,13 @@ export async function aixCommand(req, res) {
       context: reasoning.context,
       response: ethics.finalResponse
     });
+import { executeAction } from "../action/action.executor.js";
 
+// decision + ethics नंतर
+const execution = executeAction({
+  goal: command.goal,
+  context: command.context
+});
   } catch (error) {
     console.error("AIX Controller Error:", error);
 
