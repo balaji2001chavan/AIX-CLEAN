@@ -6,7 +6,7 @@ import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
 import { autoSuggestNext } from "./aix-core/core/planner/autoSuggest.js";
-
+import { searchKnowledge } from "./aix-core/executors/knowledge/searchKnowledge.js";
 import { createFile } from "./aix-core/executors/files/createFile.js";
 import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
 
@@ -38,7 +38,23 @@ app.post("/api/aix", async (req, res) => {
 
   res.json({ command, plan, result, state: getState() });
 });
+// KNOWLEDGE EXECUTOR
+if (
+  command.goal.toLowerCase().includes("knowledge") ||
+  command.goal.toLowerCase().includes("information") ||
+  command.goal.toLowerCase().includes("future")
+) {
+  const data = await searchKnowledge(command.goal);
+  updateState("Knowledge searched");
 
+  return res.json({
+    command,
+    plan,
+    result: data.summary,
+    sources: data.sources,
+    state: getState()
+  });
+  }
 app.get("/api/aix/suggest", (_, res) => {
   res.json(autoSuggestNext(getState()));
 });
