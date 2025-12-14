@@ -6,7 +6,7 @@ export async function generateRealImage(prompt) {
   if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
 
   const response = await fetch(
-    "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+    "https://router.huggingface.co/hf-inference/models/black-forest-labs/FLUX.1-schnell",
     {
       method: "POST",
       headers: {
@@ -23,7 +23,7 @@ export async function generateRealImage(prompt) {
   if (!response.ok) {
     const errText = await response.text();
     console.error("HF RAW ERROR:", errText);
-    throw new Error("Image generation failed from HF API");
+    throw new Error("Image generation failed from Hugging Face router");
   }
 
   const buffer = Buffer.from(await response.arrayBuffer());
