@@ -6,6 +6,7 @@ import path from "path";
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
+import aixRoutes from "./routes/aix.routes.js";
 
 /* ================= INSPECT / FIX ================= */
 import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
@@ -24,6 +25,8 @@ import { generateVideo } from "./aix-core/executors/media/videoGenerator.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+app.use("/aix", aixRoutes);
 
 /* serve generated output */
 app.use("/aix-output", express.static(path.join(process.cwd(), "aix-output")));
