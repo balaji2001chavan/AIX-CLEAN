@@ -2,57 +2,121 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 
-// CORE
+/* ===== CORE ===== */
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
-import { autoSuggestNext } from "./aix-core/core/planner/autoSuggest.js";
+
+/* ===== INSPECT & FIX ===== */
 import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
 import { applyFix } from "./aix-core/inspectors/applyFix.js";
-// EXECUTORS
-import { createFile } from "./aix-core/executors/files/createFile.js";
+
+/* ===== EXECUTORS ===== */
 import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
+import { createFile } from "./aix-core/executors/files/createFile.js";
 import { searchKnowledge } from "./aix-core/executors/knowledge/searchKnowledge.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// serve output files
+/* ===== STATIC OUTPUT ===== */
 app.use("/aix-output", express.static(path.join(process.cwd(), "aix-output")));
 
-// health
+/* ===== HEALTH ===== */
 app.get("/", (req, res) => {
-  res.send("AIX CORE LIVE");
+  res.send("AIX CORE IS LIVE");
 });
-app.get("/api/aix/inspect", (req, res) => {
-  const report = inspectProject(process.cwd());
-  res.json(report);
-});
-// ========== MAIN AIX API ==========
+
+/* ======================================================
+   MAIN AIX COMMAND ENDPOINT
+====================================================== */
 app.post("/api/aix", async (req, res) => {
   try {
     const message = req.body.message || "";
 
-    // 1. parse
     const command = parseCommand(message);
-
-    // 2. plan
     const plan = createPlan(command);
 
-    // default response
-    let result = "No execution";
-    let extra = {};
-app.post("/api/aix/fix", (req, res) => {
-  const { fixCode } = req.body;
-  const result = applyFix(fixCode);
-  res.json({ result });
-});
-    // ========== KNOWLEDGE ==========
+    /* ---------- INSPECT ---------- */
     if (
-      command.goal.toLowerCase().includes("भविष्य") ||
+      command.goal.toLowerCase().includes("inspect") ||
+      command.goal.toLowerCase().includes("तपास")
+    ) {
+      const report = inspectProject(process.cwd());
+      updateState("Project inspected");
+
+      return res.json({
+        command,
+        plan,
+        result: report.summary,
+        findings: report.findings,
+        state: getState()
+      });
+    }
+
+    /* ---------- APPLY FIX ---------- */
+    if (
+      command.goal.toLowerCase().includes("fix") ||
+      command.goal.toLowerCase().includes("लागू")
+    ) {
+      const match = command.goal.match(/[A-Z_]+/);
+      const fixCode = match ? match[0] : null;
+
+      if (!fixCode) {
+        return res.json({
+          result: "Fix code सापडला नाही",
+          state: getState()
+        });
+      }
+
+      const fixResult = applyFix(fixCode);
+      updateState(`Fix applied: ${fixCode}`);
+
+      return res.json({
+        command,
+        plan,
+        result: fixResult,
+        state: getState()
+      });
+    }
+
+    /* ---------- SCREENSHOT ---------- */
+    if (command.goal.toLowerCase().includes("screenshot")) {
+      const target = command.url || "https://example.com";
+      const img = await takeScreenshot(target);
+      updateState("Screenshot taken");
+
+      return res.json({
+        command,
+        plan,
+        result: "Screenshot taken",
+        imageUrl: img,
+        state: getState()
+      });
+    }
+
+    /* ---------- FILE CREATE ---------- */
+    if (command.goal.toLowerCase().includes("html")) {
+      const file = createFile(
+        "demo.html",
+        "<h1>Hello from AIX</h1><p>Auto generated</p>"
+      );
+      updateState("HTML created");
+
+      return res.json({
+        command,
+        plan,
+        result: `HTML created: ${file}`,
+        state: getState()
+      });
+    }
+
+    /* ---------- KNOWLEDGE ---------- */
+    if (
       command.goal.toLowerCase().includes("knowledge") ||
-      command.goal.toLowerCase().includes("information")
+      command.goal.toLowerCase().includes("माहिती") ||
+      command.goal.toLowerCase().includes("भविष्य")
     ) {
       const data = await searchKnowledge(command.goal);
       updateState("Knowledge searched");
@@ -65,53 +129,12 @@ app.post("/api/aix/fix", (req, res) => {
         state: getState()
       });
     }
-// ========== PROJECT INSPECTION ==========
-if (
-  command.goal.toLowerCase().includes("inspect") ||
-  command.goal.toLowerCase().includes("inspection") ||
-  command.goal.toLowerCase().includes("तपास") ||
-  command.goal.toLowerCase().includes("check")
-) {
-  const report = inspectProject(process.cwd());
-  updateState("Project inspected");
 
-  return res.json({
-    command,
-    plan,
-    result: report.summary,
-    findings: report.findings,
-    state: getState()
-  });
-  }
-    // ========== HTML FILE ==========
-    if (command.goal.toLowerCase().includes("html")) {
-      const filePath = createFile(
-        "demo.html",
-        "<h1>Hello from AIX</h1><p>HTML created</p>"
-      );
-      updateState("HTML created");
-      result = `HTML created at ${filePath}`;
-    }
-
-    // ========== SCREENSHOT ==========
-    if (command.goal.toLowerCase().includes("screenshot")) {
-  const targetUrl = command.url || "https://example.com";
-  const imgUrl = await takeScreenshot(targetUrl);
-  updateState("Screenshot taken");
-  return res.json({
-    command,
-    plan,
-    result: "Screenshot taken",
-    imageUrl: imgUrl,
-    state: getState()
-   });
- }
-    // FINAL RESPONSE
+    /* ---------- DEFAULT ---------- */
     res.json({
       command,
       plan,
-      result,
-      ...extra,
+      result: "No execution",
       state: getState()
     });
 
@@ -124,39 +147,8 @@ if (
   }
 });
 
-// ========== AUTO SUGGEST ==========
-app.get("/api/aix/suggest", (req, res) => {
-  const suggestion = autoSuggestNext(getState());
-  res.json({ suggestion, state: getState() });
-});
-
-// ========== APPROVAL ==========
-app.post("/api/aix/approve", async (req, res) => {
-  try {
-    const { action } = req.body;
-    let result = "No action executed";
-
-    if (action === "create_html") {
-      createFile("auto.html", "<h1>Auto HTML by AIX</h1>");
-      updateState("HTML auto created");
-      result = "HTML auto created";
-    }
-
-    if (action === "take_screenshot") {
-      const img = await takeScreenshot("https://example.com");
-      updateState("Screenshot auto taken");
-      result = img;
-    }
-
-    res.json({ result, state: getState() });
-
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-// START SERVER
+/* ===== START ===== */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("AIX running on port", PORT);
+  console.log("AIX Backend running on port", PORT);
 });
