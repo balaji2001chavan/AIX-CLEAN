@@ -1,6 +1,9 @@
-export function executeAction(command) {
+import { contentAction } from "./content.action.js";
+import { analysisAction } from "./analysis.action.js";
+import { helpAction } from "./help.action.js";
 
-  const goal = command.goal;
+export function executeAction(command) {
+  const goal = command.goal?.toLowerCase() || "";
 
   if (!goal) {
     return {
@@ -9,23 +12,13 @@ export function executeAction(command) {
     };
   }
 
-  // Example executions
-  if (goal.includes("content")) {
-    return {
-      executed: true,
-      result: "तुमच्यासाठी कंटेंट तयार करण्याची प्रक्रिया सुरू केली आहे"
-    };
+  if (goal.includes("content") || goal.includes("पोस्ट") || goal.includes("व्हिडिओ")) {
+    return contentAction(command);
   }
 
-  if (goal.includes("analysis")) {
-    return {
-      executed: true,
-      result: "विश्लेषण पूर्ण झाले, पुढील स्टेप्स तयार आहेत"
-    };
+  if (goal.includes("analysis") || goal.includes("खरेदी") || goal.includes("निर्णय")) {
+    return analysisAction(command);
   }
 
-  return {
-    executed: false,
-    result: "हा goal सध्या supported नाही"
-  };
+  return helpAction(command);
 }
