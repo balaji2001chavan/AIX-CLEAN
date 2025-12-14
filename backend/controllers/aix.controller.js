@@ -3,6 +3,12 @@ import { decisionEngine } from "../brain/decision.js";
 import { ethicsCheck } from "../brain/ethics.js";
 import { executeAction } from "../action/action.executor.js";
 
+// Self-change imports
+import { detectSelfChangeIntent } from "../self-change/change.detector.js";
+import { planChange } from "../self-change/change.planner.js";
+import { generateChange } from "../self-change/change.generator.js";
+import { buildProof } from "../self-change/change.proof.js";
+
 export async function aixCommand(req, res) {
   try {
     const input = req.body.query;
@@ -10,17 +16,37 @@ export async function aixCommand(req, res) {
     if (!input) {
       return res.status(400).json({
         success: false,
-        error: "Query / Goal दिलेला नाही"
+        error: "Query दिलेली नाही"
       });
     }
 
-    // 1️⃣ Reasoning
+    /* ===============================
+       🔁 SELF CHANGE MODE (AIX स्वतः बदल सुचवतो)
+    ================================ */
+    const isSelfChange = detectSelfChangeIntent(input);
+
+    if (isSelfChange) {
+      const plan = planChange(input);
+      const change = generateChange(plan);
+      const proof = buildProof();
+
+      return res.json({
+        success: true,
+        mode: "SELF_CHANGE_PROPOSAL",
+        message: "मी स्वतःमध्ये खालील बदल सुचवतोय",
+        plan,
+        change,
+        proof,
+        approvalRequired: true
+      });
+    }
+
+    /* ===============================
+       🧠 NORMAL AIX FLOW
+    ================================ */
+
     const reasoning = reasoningEngine(input);
-
-    // 2️⃣ Decision
     const decision = decisionEngine(reasoning);
-
-    // 3️⃣ Ethics check
     const ethics = ethicsCheck(decision);
 
     if (!ethics.allowed) {
@@ -30,27 +56,24 @@ export async function aixCommand(req, res) {
       });
     }
 
-    // 4️⃣ REAL ACTION EXECUTION
     const execution = executeAction({
       goal: input,
       context: reasoning.context
     });
 
-    // 5️⃣ FINAL RESPONSE
     return res.json({
       success: true,
       intent: reasoning.intent,
       context: reasoning.context,
       decision: decision.suggestion,
-      execution: execution
+      execution
     });
 
   } catch (error) {
-    console.error("AIX CONTROLLER ERROR:", error);
-
+    console.error("AIX ERROR:", error);
     return res.status(500).json({
       success: false,
-      error: "Internal AIX Server Error"
+      error: "Internal AIX Error"
     });
   }
-}
+                                    }
