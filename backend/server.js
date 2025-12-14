@@ -7,7 +7,8 @@ import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
 import { autoSuggestNext } from "./aix-core/core/planner/autoSuggest.js";
-
+import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
+import { applyFix } from "./aix-core/inspectors/applyFix.js";
 // EXECUTORS
 import { createFile } from "./aix-core/executors/files/createFile.js";
 import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
@@ -24,7 +25,10 @@ app.use("/aix-output", express.static(path.join(process.cwd(), "aix-output")));
 app.get("/", (req, res) => {
   res.send("AIX CORE LIVE");
 });
-
+app.get("/api/aix/inspect", (req, res) => {
+  const report = inspectProject(process.cwd());
+  res.json(report);
+});
 // ========== MAIN AIX API ==========
 app.post("/api/aix", async (req, res) => {
   try {
@@ -39,7 +43,11 @@ app.post("/api/aix", async (req, res) => {
     // default response
     let result = "No execution";
     let extra = {};
-
+app.post("/api/aix/fix", (req, res) => {
+  const { fixCode } = req.body;
+  const result = applyFix(fixCode);
+  res.json({ result });
+});
     // ========== KNOWLEDGE ==========
     if (
       command.goal.toLowerCase().includes("भविष्य") ||
