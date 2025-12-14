@@ -15,8 +15,7 @@ export async function aixCommand(req, res) {
     context: reasoning.context,
     response: ethics.finalResponse
   });
-}
-catch (error) {
+}catch (error) {
     return res.status(500).json({ error: "AIX Error" });
   }
 }
