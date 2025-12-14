@@ -8,7 +8,7 @@ import { detectSelfChangeIntent } from "../self-change/change.detector.js";
 import { planChange } from "../self-change/change.planner.js";
 import { generateChange } from "../self-change/change.generator.js";
 import { buildProof } from "../self-change/change.proof.js";
-
+import { buildConversationalResponse } from "../conversation/response.builder.js";
 export async function aixCommand(req, res) {
   try {
     const input = req.body.query;
@@ -56,19 +56,19 @@ export async function aixCommand(req, res) {
       });
     }
 
-    const execution = executeAction({
-      goal: input,
-      context: reasoning.context
-    });
 
-    return res.json({
-      success: true,
-      intent: reasoning.intent,
-      context: reasoning.context,
-      decision: decision.suggestion,
-      execution
-    });
+   const finalResponse = buildConversationalResponse({
+  input,
+  intent: reasoning.intent,
+  decision: decision.suggestion,
+  execution
+});
 
+return res.json({
+  success: true,
+  response: finalResponse,
+  execution
+});
   } catch (error) {
     console.error("AIX ERROR:", error);
     return res.status(500).json({
