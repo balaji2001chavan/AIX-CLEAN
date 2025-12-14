@@ -65,7 +65,24 @@ app.post("/api/aix/fix", (req, res) => {
         state: getState()
       });
     }
+// ========== PROJECT INSPECTION ==========
+if (
+  command.goal.toLowerCase().includes("inspect") ||
+  command.goal.toLowerCase().includes("inspection") ||
+  command.goal.toLowerCase().includes("तपास") ||
+  command.goal.toLowerCase().includes("check")
+) {
+  const report = inspectProject(process.cwd());
+  updateState("Project inspected");
 
+  return res.json({
+    command,
+    plan,
+    result: report.summary,
+    findings: report.findings,
+    state: getState()
+  });
+  }
     // ========== HTML FILE ==========
     if (command.goal.toLowerCase().includes("html")) {
       const filePath = createFile(
