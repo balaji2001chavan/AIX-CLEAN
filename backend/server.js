@@ -70,12 +70,17 @@ app.post("/api/aix", async (req, res) => {
 
     // ========== SCREENSHOT ==========
     if (command.goal.toLowerCase().includes("screenshot")) {
-      const imgUrl = await takeScreenshot("https://example.com");
-      updateState("Screenshot taken");
-      result = "Screenshot taken";
-      extra.imageUrl = imgUrl;
-    }
-
+  const targetUrl = command.url || "https://example.com";
+  const imgUrl = await takeScreenshot(targetUrl);
+  updateState("Screenshot taken");
+  return res.json({
+    command,
+    plan,
+    result: "Screenshot taken",
+    imageUrl: imgUrl,
+    state: getState()
+   });
+ }
     // FINAL RESPONSE
     res.json({
       command,
