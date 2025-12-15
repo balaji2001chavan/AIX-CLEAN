@@ -1,239 +1,72 @@
-/* =====================================================
-   AIX FINAL SERVER.JS
-   - Old AIX Core preserved
-   - New AIX APX API (API KEY based)
-   - No external LLM / No extra key
-   - Render + Node.js v22 compatible
-===================================================== */
 
 import express from "express";
 import cors from "cors";
-import path from "path";
 
-/* ================= OLD AIX CORE ================= */
-import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
-import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
-import { createPlan } from "./aix-core/core/planner/planner.js";
-import aixRoutes from "./routes/aix.routes.js";
+import { aixBrain } from "./aix-brain/aixBrain.js";
+import { findProducts } from "./services/productSearch.service.js";
+import { wrapReply } from "./core/persona/aixPersona.js";
 
-/* ================= INSPECT / FIX ================= */
-import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
-import { applyFix } from "./aix-core/inspectors/applyFix.js";
-import marketRoutes from "./routes/market.routes.js";
-
-/* ================= EXECUTORS ================= */
-import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
-import { createFile } from "./aix-core/executors/files/createFile.js";
-import { searchKnowledge } from "./aix-core/executors/knowledge/searchKnowledge.js";
-
-/* ================= MEDIA ================= */
-import { generateRealImage } from "./aix-core/executors/media/realImageGenerator.js";
-import { generateVideo } from "./aix-core/executors/media/videoGenerator.js";
-
-/* ================= NEW AIX APX CORE ================= */
-import { aixApxController } from "./aix-apx/apx.controller.js";
-
-/* ================= APP INIT ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use("/api/market", marketRoutes);
-/* ================= ROUTES ================= */
 
-/* Old AIX routes (untouched) */
-app.use("/aix", aixRoutes);
-
-/* New AIX APX API (API KEY based) */
-app.post("/api/aix-apx", aixApxController);
-
-/* serve generated output */
-app.use(
-  "/aix-output",
-  express.static(path.join(process.cwd(), "aix-output"))
-);
-
-/* ================= HEALTH ================= */
-app.get("/", (req, res) => {
-  res.send("AIX CORE + APX API IS LIVE");
-});
-
-/* =====================================================
-   MAIN OLD AIX COMMAND ENDPOINT (UNCHANGED)
-===================================================== */
+/* =======================
+   MAIN AIX CHAT ENDPOINT
+======================= */
 app.post("/api/aix", async (req, res) => {
   try {
     const message = req.body.message || "";
 
-    const command = parseCommand(message);
-    const plan = createPlan(command);
+    // 🧠 AIX BRAIN decides
+    const decision = aixBrain({ message });
 
-    /* ========== PROJECT INSPECT ========== */
-    if (
-      command.goal?.toLowerCase().includes("inspect") ||
-      command.goal?.toLowerCase().includes("तपास")
-    ) {
-      const report = inspectProject(process.cwd());
-      updateState("Project inspected");
-
+    /* 🗣️ NORMAL TALK */
+    if (decision.type === "talk") {
       return res.json({
-        command,
-        plan,
-        result: report.summary,
-        findings: report.findings,
-        state: getState()
+        reply: decision.reply
       });
     }
 
-    /* ========== APPLY FIX ========== */
-    if (
-      command.goal?.toLowerCase().includes("fix") ||
-      command.goal?.toLowerCase().includes("लागू")
-    ) {
-      const match = command.goal.match(/[A-Z_]+/);
-      const fixCode = match ? match[0] : null;
+    /* 🛍️ PRODUCT SEARCH ACTION */
+    if (decision.type === "action" && decision.action === "PRODUCT_SEARCH") {
 
-      if (!fixCode) {
-        return res.json({
-          command,
-          plan,
-          result: "Fix code सापडला नाही",
-          state: getState()
-        });
-      }
-
-      const fixResult = applyFix(fixCode);
-      updateState(`Fix applied: ${fixCode}`);
+      const products = await findProducts({
+        query: message,
+        budget: 300,
+        categories: ["fashion", "gadgets", "kids"]
+      });
 
       return res.json({
-        command,
-        plan,
-        result: fixResult,
-        state: getState()
+        reply: wrapReply({
+          message:
+            "बरं बॉस 👍 आजच्या लाईव्ह रेटनुसार योग्य प्रॉडक्ट्स निवडले आहेत. खाली बघा."
+        }),
+        items: products
       });
     }
 
-    /* ========== SCREENSHOT ========== */
-    if (
-      command.goal?.toLowerCase().includes("screenshot") ||
-      command.output?.toLowerCase().includes("screenshot")
-    ) {
-      const targetUrl = command.url || "https://example.com";
-      const img = await takeScreenshot(targetUrl);
-      updateState("Screenshot taken");
-
-      return res.json({
-        command,
-        plan,
-        result: "Screenshot taken",
-        imageUrl: img,
-        state: getState()
-      });
-    }
-
-    /* ========== HTML / FILE CREATE ========== */
-    if (
-      command.goal?.toLowerCase().includes("html") ||
-      command.output?.toLowerCase().includes("html")
-    ) {
-      const filePath = createFile(
-        "demo.html",
-        "<h1>Hello from AIX</h1><p>Auto generated HTML</p>"
-      );
-      updateState("HTML created");
-
-      return res.json({
-        command,
-        plan,
-        result: `HTML created at ${filePath}`,
-        state: getState()
-      });
-    }
-
-    /* ========== KNOWLEDGE ========== */
-    if (
-      command.goal?.toLowerCase().includes("knowledge") ||
-      command.goal?.toLowerCase().includes("माहिती") ||
-      command.goal?.toLowerCase().includes("भविष्य") ||
-      command.output?.toLowerCase().includes("knowledge")
-    ) {
-      const data = await searchKnowledge(command.goal);
-      updateState("Knowledge searched");
-
-      return res.json({
-        command,
-        plan,
-        result: data.summary,
-        sources: data.sources,
-        state: getState()
-      });
-    }
-
-    /* ========== REAL IMAGE GENERATOR ========== */
-    if (
-      command.output?.toLowerCase().includes("image") ||
-      command.goal?.toLowerCase().includes("image") ||
-      command.goal?.toLowerCase().includes("इमेज") ||
-      command.goal?.toLowerCase().includes("photo")
-    ) {
-      try {
-        const img = await generateRealImage(command.goal);
-        updateState("Real image generated");
-
-        return res.json({
-          command,
-          plan,
-          result: "Real image generated by AIX",
-          imageUrl: img,
-          state: getState()
-        });
-      } catch (e) {
-        return res.json({
-          command,
-          plan,
-          result: "Image generation failed",
-          error: e.message,
-          state: getState()
-        });
-      }
-    }
-
-    /* ========== VIDEO GENERATOR ========== */
-    if (
-      command.output?.toLowerCase().includes("video") ||
-      command.goal?.toLowerCase().includes("video") ||
-      command.goal?.toLowerCase().includes("व्हिडिओ")
-    ) {
-      const vid = generateVideo(command.goal);
-      updateState("Video generated");
-
-      return res.json({
-        command,
-        plan,
-        result: "Video generated by AIX",
-        videoUrl: vid,
-        state: getState()
-      });
-    }
-
-    /* ========== DEFAULT ========== */
+    /* FALLBACK */
     return res.json({
-      command,
-      plan,
-      result: "No execution",
-      state: getState()
+      reply: wrapReply({
+        message:
+          "मी समजून घेतोय बॉस, पण यावर थोडं स्पष्ट सांगाल का?"
+      })
     });
 
   } catch (err) {
     console.error("AIX ERROR:", err);
     return res.status(500).json({
-      error: "AIX internal error",
-      details: err.message
+      reply: wrapReply({
+        message: "थोडी अडचण आली बॉस. पुन्हा प्रयत्न करूया."
+      })
     });
   }
 });
 
-/* ================= START ================= */
-const PORT = process.env.PORT || 10000;
+/* =======================
+   SERVER START
+======================= */
+const PORT = 10000;
 app.listen(PORT, () => {
-  console.log("AIX Backend running on port", PORT);
+  console.log("AIX Backend LIVE on port", PORT);
 });
