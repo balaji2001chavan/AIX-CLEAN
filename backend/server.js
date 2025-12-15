@@ -4,16 +4,24 @@ import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
 import { selfChangeAction } from "./actions/selfChange.action.js";
+import { createJob, getJob } from "./jobs/jobStore.js";
+import { runFileCreateJob } from "./jobs/fileCreate.job.js";
+
 /* ================= APP ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 10000;
-
+app.get("/api/job/:id", (req, res) => {
+  const job = getJob(req.params.id);
+  if (!job) return res.status(404).json({ error: "Job not found" });
+  res.json(job);
+});
 /* ================= OPENAI ================= */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
 
 /* ================= AIX IDENTITY (VERY IMPORTANT) ================= */
 const AIX_PROFILE = `
@@ -89,7 +97,45 @@ app.post("/api/aix", async (req, res) => {
     ) {
       const action = conversationMemory.pendingAction;
       conversationMemory.pendingAction = null;
+if (lower.includes("फाइल बनव")) {
+  const job = createJob("Create new file");
 
+  conversationMemory.pendingJob = {
+    jobId: job.id,
+    type: "FILE_CREATE",
+    payload: {
+      filename: "aix-job-proof.txt",
+      content: "This file is created by AIX Job Runner."
+    }
+  };
+if (lower.includes("फाइल बनव")) {
+  const job = createJob("Create new file");
+
+  conversationMemory.pendingJob = {
+    jobId: job.id,
+    type: "FILE_CREATE",
+    payload: {
+      filename: "aix-job-proof.txt",
+      content: "This file is created by AIX Job Runner."
+    }
+  };
+
+  return res.json({
+    reply:
+      "बॉस, मी नवीन फाइल बनवण्याचं काम सुरू करू शकतो.\n" +
+      "काम सुरू केल्यावर timer चालू होईल.\n" +
+      "करू का?",
+    job
+  });
+}
+  return res.json({
+    reply:
+      "बॉस, मी नवीन फाइल बनवण्याचं काम सुरू करू शकतो.\n" +
+      "काम सुरू केल्यावर timer चालू होईल.\n" +
+      "करू का?",
+    job
+  });
+}
       if (action.type === "CREATE_FILE") {
         const result = createFileAction(action.payload);
         return res.json({
