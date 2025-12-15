@@ -4,7 +4,8 @@ import cors from "cors";
 import { aixBrain } from "./aix-brain/aixBrain.js";
 import { wrapReply } from "./core/persona/aixPersona.js";
 import { findProducts } from "./services/productSearch.service.js";
-
+import { getLiveKnowledge } from "./services/liveKnowledge.service.js";
+import { getMemory, setMemory } from "./memory/memoryStore.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -43,7 +44,18 @@ app.post("/api/aix", async (req, res) => {
         budget: 300,
         categories: ["fashion", "kids", "gadgets"]
       });
-
+if (decision.mode === "ACT") {
+  const mem = getMemory();
+  if (mem.lastTopic === "knowledge") {
+    const info = await getLiveKnowledge("ai");
+    setMemory({ lastTopic: null });
+    return res.json({
+      reply: wrapReply({
+        message: `${info}\n\nहे general आहे बॉस. specific verify करायचं असेल तर सांगा.`
+      })
+    });
+  }
+}
       memory.lastProposal = null;
 
       return res.json({
