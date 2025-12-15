@@ -1,49 +1,46 @@
-import { verifyKey } from "./apx.auth.js";
-import { think } from "./apx.tools.js";
-import { act } from "./apx.actions.js";
-import { speak } from "./apx.llm.js";
-import { buildResponse } from "./apx.response.js";
-import { saveMemory } from "./apx.memory.js";
+import { verifyAIXKey } from "./apx.auth.js";
+import { aixThink } from "./apx.logic.js";
+import { aixAct } from "./apx.actions.js";
 
-export async function apx(req, res) {
+export async function apxController(req, res) {
   try {
-    const apiKey = req.headers.authorization;
-    const input = req.body.input || "";
+    const auth = req.headers.authorization;
+    const input = req.body.input;
 
-    // 1️⃣ AUTH
-    const keyData = verifyKey(apiKey);
-    if (!keyData.allowed) {
-      return res.status(403).json({ error: "Invalid API key" });
+    if (!input) {
+      return res.status(400).json({ error: "Input missing" });
     }
 
-    // 2️⃣ THINK (Intent + Context + Live signals)
-    const thought = await think(input, keyData);
+    // 1️⃣ API KEY CHECK
+    const keyData = verifyAIXKey(auth);
+    if (!keyData.allowed) {
+      return res.status(403).json({ error: keyData.reason });
+    }
 
-    // 3️⃣ ACTION (Auto / Plan / Approval)
-    const actionResult = await act(thought, keyData);
+    // 2️⃣ THINK
+    const thought = aixThink(input);
 
-    // 4️⃣ SPEAK (ChatGPT-style explain)
-    const speech = await speak({
-      input,
-      thought,
-      actionResult,
-      plan: keyData.plan
+    // 3️⃣ ACT
+    const action = aixAct(thought.intent, keyData);
+
+    // 4️⃣ FINAL RESPONSE
+    return res.json({
+      success: true,
+      plan: keyData.plan,
+      reply: `
+मी तुमचं म्हणणं समजून घेतलं आहे.
+
+➡️ विषय: ${thought.intent}
+➡️ सुचना: ${thought.suggestion}
+
+${action.message}
+
+पुढे काय करायचं ते सांगा.
+      `
     });
-
-    // 5️⃣ MEMORY + PROOF
-    saveMemory({ input, thought, actionResult });
-
-    // 6️⃣ FINAL RESPONSE
-    return res.json(
-      buildResponse({
-        speech,
-        actionResult,
-        plan: keyData.plan
-      })
-    );
 
   } catch (err) {
     console.error("AIX APX ERROR:", err);
-    res.status(500).json({ error: "AIX APX internal error" });
+    return res.status(500).json({ error: "AIX internal error" });
   }
 }
