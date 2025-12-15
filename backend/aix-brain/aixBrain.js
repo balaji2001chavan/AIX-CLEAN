@@ -1,38 +1,60 @@
 import { wrapReply } from "../core/persona/aixPersona.js";
 
 export function aixBrain({ message }) {
+  const text = message.toLowerCase();
 
-  const lower = message.toLowerCase();
-
-  // 1️⃣ Greeting
+  // 1️⃣ Feeling / vague talk
   if (
-    lower.includes("hi") ||
-    lower.includes("hello") ||
-    lower.includes("नमस्कार") ||
-    lower.includes("good")
+    text.includes("समजत") ||
+    text.includes("काय करायचं") ||
+    text.includes("help") ||
+    text.includes("अडचण")
   ) {
     return {
       type: "talk",
       reply: wrapReply({
-        message: "आज काय करूया बॉस? खरेदी, बिझनेस की काही समजून घ्यायचं?"
+        message:
+          "मी समजतोय बॉस. थोडं स्पष्ट सांगाल का – तुम्हाला माहिती हवी आहे की काही काम करून दाखवू?"
       })
     };
   }
 
-  // 2️⃣ Product intent
-  if (lower.includes("₹") || lower.includes("कपडे") || lower.includes("product")) {
+  // 2️⃣ Knowledge / discussion
+  if (
+    text.includes("माहिती") ||
+    text.includes("कसं") ||
+    text.includes("का")
+  ) {
     return {
-      type: "action",
-      action: "PRODUCT_SEARCH"
+      type: "talk",
+      reply: wrapReply({
+        message:
+          "छान प्रश्न आहे बॉस. आधी थोडं समजावतो, मग पुढचं पाऊल ठरवू."
+      })
     };
   }
 
-  // 3️⃣ Default – deep talk
+  // 3️⃣ Clear product intent
+  if (
+    text.includes("₹") ||
+    text.includes("कपडे") ||
+    text.includes("घेणे")
+  ) {
+    return {
+      type: "clarify",
+      reply: wrapReply({
+        message:
+          "बरं बॉस 👍 हे पाहण्याआधी एक गोष्ट सांगा – men, women की kids साठी?"
+      })
+    };
+  }
+
+  // 4️⃣ Default – conversational
   return {
     type: "talk",
     reply: wrapReply({
       message:
-        "मी समजतोय बॉस. तुम्ही जे विचारताय ते महत्वाचं आहे. थोडं खोलवर पाहूया."
+        "मी ऐकतोय बॉस. थोडं अजून सांगा म्हणजे मी योग्य उत्तर देऊ शकेन."
     })
   };
 }
