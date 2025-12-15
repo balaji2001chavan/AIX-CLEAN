@@ -13,6 +13,47 @@ app.use(express.json());
 /* =======================
    MAIN AIX CHAT ENDPOINT
 ======================= */
+import { aixBrain } from "./aix-brain/aixBrain.js";
+import { findProducts } from "./services/productSearch.service.js";
+import { wrapReply } from "./core/persona/aixPersona.js";
+
+let lastProposal = null; // साधी memory (Phase-1)
+
+app.post("/api/aix", async (req, res) => {
+  const message = req.body.message || "";
+  const decision = aixBrain({ message });
+
+  if (decision.state === "ADVISE") {
+    return res.json({ reply: decision.reply });
+  }
+
+  if (decision.state === "PROPOSE") {
+    lastProposal = decision.proposal;
+    return res.json({ reply: decision.reply });
+  }
+
+  if (decision.state === "ACT" && lastProposal?.type === "PRODUCT_SEARCH") {
+    const items = await findProducts({
+      query: message,
+      budget: 300,
+      categories: ["fashion", "gadgets", "kids"]
+    });
+    lastProposal = null;
+    return res.json({
+      reply: wrapReply({
+        message:
+          "ठीक आहे बॉस. मी लाईव्ह प्रॉडक्ट्स आणले आहेत. थेट स्क्रीन उघडू शकता."
+      }),
+      items
+    });
+  }
+
+  return res.json({
+    reply: wrapReply({
+      message: "थोडं स्पष्ट करूया बॉस—काय करायचं ते सांगाल?"
+    })
+  });
+});
 app.post("/api/aix", async (req, res) => {
   try {
     const message = req.body.message || "";
