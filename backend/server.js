@@ -16,7 +16,46 @@ app.use(express.json());
 import { aixBrain } from "./aix-brain/aixBrain.js";
 import { findProducts } from "./services/productSearch.service.js";
 import { wrapReply } from "./core/persona/aixPersona.js";
+let memory = {
+  lastProposal: null
+};
+app.post("/api/aix", async (req, res) => {
+  const message = req.body.message || "";
+  const decision = aixBrain({ message, memory });
 
+  if (decision.mode === "EXPLAIN") {
+    return res.json({ reply: decision.reply });
+  }
+
+  if (decision.mode === "PROPOSE") {
+    memory.lastProposal = decision.proposal;
+    return res.json({ reply: decision.reply });
+  }
+
+  if (decision.mode === "ACT" && memory.lastProposal?.type === "PRODUCT_SEARCH") {
+    const items = await findProducts({
+      query: message,
+      budget: 300,
+      categories: ["fashion", "gadgets", "kids"]
+    });
+
+    memory.lastProposal = null;
+
+    return res.json({
+      reply: wrapReply({
+        message:
+          "ठीक आहे बॉस. मी लाईव्ह प्रॉडक्ट्स आणले आहेत. खाली बघा."
+      }),
+      items
+    });
+  }
+
+  return res.json({
+    reply: wrapReply({
+      message: "थोडं स्पष्ट करूया बॉस—काय करायचं ते सांगा."
+    })
+  });
+});
 let lastProposal = null; // साधी memory (Phase-1)
 
 app.post("/api/aix", async (req, res) => {
