@@ -1,95 +1,155 @@
 import express from "express";
 import cors from "cors";
-import { readProject } from "./code-reader/readProject.js";
-import { aixBrain } from "./aix-brain/aixBrain.js";
-import { wrapReply } from "./core/persona/aixPersona.js";
-import { findProducts } from "./services/productSearch.service.js";
-import { getLiveKnowledge } from "./services/liveKnowledge.service.js";
-import { getMemory, setMemory } from "./memory/memoryStore.js";
+import OpenAI from "openai";
+
+/* ================= BASIC APP ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// simple memory (phase-1)
+const PORT = process.env.PORT || 10000;
+
+/* ================= OPENAI BRAIN ================= */
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+const SYSTEM_PROMPT = `
+You are AIX.
+
+You speak like a smart, practical, emotionally-aware Indian assistant.
+You behave like a trusted human advisor, not a chatbot.
+You NEVER give fixed confirms or robotic replies.
+You adapt to the user's language (Marathi / Hindi / English).
+You ask clarifying questions before taking any real-world action.
+You explain consequences before acting.
+You only suggest legal and realistic actions.
+
+If the user asks for real work:
+- First explain what you can do
+- Ask for confirmation ("करू का?")
+- Wait for explicit approval before action
+`;
+
+/* ================= SIMPLE MEMORY (SESSION) ================= */
 let memory = {
-  lastProposal: null
+  lastIntent: null,
+  pendingAction: null
 };
 
+/* ================= HEALTH ================= */
 app.get("/", (req, res) => {
   res.send("AIX CORE LIVE");
 });
 
+/* ================= REAL ACTION HANDLERS ================= */
+
+/* Demo: Product Search (real work placeholder) */
+async function searchProducts({ budget = 300, category = "general" }) {
+  return [
+    {
+      title: "Men Casual T-Shirt",
+      price: 289,
+      url: "https://example.com/men-tshirt"
+    },
+    {
+      title: "Wireless Earbuds",
+      price: 299,
+      url: "https://example.com/earbuds"
+    }
+  ];
+}
+
+/* Demo: Repo Reader (real work placeholder) */
+function readRepo() {
+  return {
+    folders: ["controllers", "services", "routes"],
+    files: ["server.js", "package.json"]
+  };
+}
+
+/* ================= MAIN AIX API ================= */
 app.post("/api/aix", async (req, res) => {
   try {
-    const message = req.body.message || "";
-    const decision = aixBrain({ message, memory });
-
-    // Advisor / explain
-    if (decision.mode === "EXPLAIN") {
-      return res.json({ reply: decision.reply });
-    }
-if (decision.mode === "READ_CODE") {
-  const report = readProject(process.cwd());
-
-  return res.json({
-    reply: wrapReply({
-      message:
-        "मी प्रोजेक्ट वाचला आहे बॉस. खाली स्ट्रक्चर आणि माझं निरीक्षण देतो."
-    }),
-    project: report
-  });
-}
-    // Proposal (ask permission)
-    if (decision.mode === "PROPOSE") {
-      memory.lastProposal = decision.proposal;
-      return res.json({ reply: decision.reply });
+    const userMessage = req.body.message?.trim();
+    if (!userMessage) {
+      return res.json({ reply: "काय सांगायचं आहे बॉस?" });
     }
 
-    // Action (only after permission)
+    /* ================= HANDLE APPROVAL ================= */
     if (
-      decision.mode === "ACT" &&
-      memory.lastProposal?.type === "PRODUCT_SEARCH"
+      memory.pendingAction &&
+      ["हो", "yes", "ok", "कर", "करा"].includes(userMessage.toLowerCase())
     ) {
-      const items = await findProducts({
-        budget: 300,
-        categories: ["fashion", "kids", "gadgets"]
-      });
-if (decision.mode === "ACT") {
-  const mem = getMemory();
-  if (mem.lastTopic === "knowledge") {
-    const info = await getLiveKnowledge("ai");
-    setMemory({ lastTopic: null });
-    return res.json({
-      reply: wrapReply({
-        message: `${info}\n\nहे general आहे बॉस. specific verify करायचं असेल तर सांगा.`
-      })
-    });
-  }
-}
-      memory.lastProposal = null;
+      const action = memory.pendingAction;
+      memory.pendingAction = null;
 
-      return res.json({
-        reply: wrapReply({
-          message:
-            "ठीक आहे बॉस. मी लाईव्ह प्रॉडक्ट्स आणले आहेत. खाली क्लिक करून थेट स्क्रीन उघडू शकता."
-        }),
-        items
-      });
+      if (action.type === "PRODUCT_SEARCH") {
+        const items = await searchProducts(action.payload);
+        return res.json({
+          reply:
+            "ठीक आहे बॉस. खाली उपलब्ध प्रॉडक्ट्स दिले आहेत. थेट लिंकवर क्लिक करून पाहू शकता.",
+          result: items
+        });
+      }
+
+      if (action.type === "REPO_READ") {
+        const repo = readRepo();
+        return res.json({
+          reply:
+            "मी प्रोजेक्ट वाचला आहे बॉस. खाली स्ट्रक्चर आणि महत्वाच्या गोष्टी दिल्या आहेत.",
+          result: repo
+        });
+      }
     }
 
-    return res.json({
-      reply: wrapReply({
-        message: "थोडं स्पष्ट करूया बॉस—काय करायचं ते सांगा."
-      })
+    /* ================= OPENAI CHAT ================= */
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      temperature: 0.7,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userMessage }
+      ]
     });
-  } catch (e) {
+
+    const aiReply = completion.choices[0].message.content;
+
+    /* ================= INTENT DETECTION (LIGHT) ================= */
+    const lower = userMessage.toLowerCase();
+
+    if (
+      lower.includes("₹") ||
+      lower.includes("कपडे") ||
+      lower.includes("product")
+    ) {
+      memory.pendingAction = {
+        type: "PRODUCT_SEARCH",
+        payload: { budget: 300 }
+      };
+    }
+
+    if (
+      lower.includes("repo") ||
+      lower.includes("प्रोजेक्ट") ||
+      lower.includes("code वाच")
+    ) {
+      memory.pendingAction = {
+        type: "REPO_READ"
+      };
+    }
+
+    return res.json({ reply: aiReply });
+  } catch (err) {
+    console.error("AIX ERROR:", err);
     return res.status(500).json({
-      reply: "थोडी अडचण आली बॉस. पुन्हा प्रयत्न करूया."
+      reply:
+        "थोडी तांत्रिक अडचण आली बॉस. थोड्या वेळाने पुन्हा प्रयत्न करूया."
     });
   }
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log("AIX Backend LIVE on port", PORT)
-);
+/* ================= START ================= */
+app.listen(PORT, () => {
+  console.log("AIX Backend LIVE on port", PORT);
+});
