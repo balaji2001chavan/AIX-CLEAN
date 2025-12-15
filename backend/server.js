@@ -19,6 +19,7 @@ import aixRoutes from "./routes/aix.routes.js";
 /* ================= INSPECT / FIX ================= */
 import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
 import { applyFix } from "./aix-core/inspectors/applyFix.js";
+import marketRoutes from "./routes/market.routes.js";
 
 /* ================= EXECUTORS ================= */
 import { takeScreenshot } from "./aix-core/executors/web/screenshot.js";
@@ -36,7 +37,7 @@ import { aixApxController } from "./aix-apx/apx.controller.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
-
+app.use("/api/market", marketRoutes);
 /* ================= ROUTES ================= */
 
 /* Old AIX routes (untouched) */
