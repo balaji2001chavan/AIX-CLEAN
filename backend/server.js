@@ -1,74 +1,78 @@
 import express from "express";
 import cors from "cors";
 import OpenAI from "openai";
-import { analyzeProject } from "./analysis/analyzeProject.js";
-import { port { createFil } tion "./actions/createFile.action.js";
+import fs from "fs";
+import path from "path";
 
-/* ================= BASIC APP ================= */
+/* ================= APP ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
-
 const PORT = process.env.PORT || 10000;
 
-/* ================= OPENAI BRAIN ================= */
+/* ================= OPENAI ================= */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-const SYSTEM_PROMPT = `
-You are AIX.
+/* ================= AIX IDENTITY (VERY IMPORTANT) ================= */
+const AIX_PROFILE = `
+You are AIX (Action Intelligence X).
 
-You speak like a smart, practical, emotionally-aware Indian assistant.
-You behave like a trusted human advisor, not a chatbot.
-You NEVER give fixed confirms or robotic replies.
-You adapt to the user's language (Marathi / Hindi / English).
-You ask clarifying questions before taking any real-world action.
-You explain consequences before acting.
-You only suggest legal and realistic actions.
+Owner: Boss
+Nature: Global Intelligence + Real Action System
 
-If the user asks for real work:
-- First explain what you can do
-- Ask for confirmation ("करू का?")
-- Wait for explicit approval before action
+You are NOT a demo chatbot.
+You are a long-term evolving system.
+
+Your purpose:
+- Speak like ChatGPT (human, deep, adaptive)
+- Understand intent and emotion
+- Remember previous conversations
+- Understand the AIX project and improve it
+- Suggest what to add, remove, or change
+- Explain consequences before action
+- Ask for approval before doing real work
+- Do only legal, real-world digital actions
+
+Boss gives high-level orders.
+You decide HOW to do them.
+
+Never ask repeatedly "what do you mean".
+Use context and memory.
+Speak Marathi / Hindi / English based on user.
 `;
 
-/* ================= SIMPLE MEMORY (SESSION) ================= */
-let memory = {
-  lastIntent: null,
-  pendingAction: null
-};
+/* ================= MEMORY ================= */
+// In-memory (phase 1)
+let conversationMemory = [];
+
+// limit memory size (safety)
+function trimMemory() {
+  if (conversationMemory.length > 20) {
+    conversationMemory = conversationMemory.slice(-20);
+  }
+}
+
+/* ================= SIMPLE ACTION: FILE CREATE ================= */
+function createFileAction({ filename, content }) {
+  const outputDir = path.join(process.cwd(), "output");
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
+
+  const filePath = path.join(outputDir, filename);
+  fs.writeFileSync(filePath, content, "utf8");
+
+  return {
+    success: true,
+    file: filename,
+    path: `/output/${filename}`
+  };
+}
 
 /* ================= HEALTH ================= */
 app.get("/", (req, res) => {
   res.send("AIX CORE LIVE");
 });
-
-/* ================= REAL ACTION HANDLERS ================= */
-
-/* Demo: Product Search (real work placeholder) */
-async function searchProducts({ budget = 300, category = "general" }) {
-  return [
-    {
-      title: "Men Casual T-Shirt",
-      price: 289,
-      url: "https://example.com/men-tshirt"
-    },
-    {
-      title: "Wireless Earbuds",
-      price: 299,
-      url: "https://example.com/earbuds"
-    }
-  ];
-}
-
-/* Demo: Repo Reader (real work placeholder) */
-function readRepo() {
-  return {
-    folders: ["controllers", "services", "routes"],
-    files: ["server.js", "package.json"]
-  };
-}
 
 /* ================= MAIN AIX API ================= */
 app.post("/api/aix", async (req, res) => {
@@ -78,125 +82,67 @@ app.post("/api/aix", async (req, res) => {
       return res.json({ reply: "काय सांगायचं आहे बॉस?" });
     }
 
-    /* ================= HANDLE APPROVAL ================= */
+    /* ===== CHECK APPROVAL ===== */
     if (
-      memory.pendingAction &&
+      conversationMemory.pendingAction &&
       ["हो", "yes", "ok", "कर", "करा"].includes(userMessage.toLowerCase())
     ) {
-      const action = memory.pendingAction;
-      memory.pendingAction = null;
+      const action = conversationMemory.pendingAction;
+      conversationMemory.pendingAction = null;
 
-      if (action.type === "PRODUCT_SEARCH") {
-        const items = await searchProducts(action.payload);
+      if (action.type === "CREATE_FILE") {
+        const result = createFileAction(action.payload);
         return res.json({
           reply:
-            "ठीक आहे बॉस. खाली उपलब्ध प्रॉडक्ट्स दिले आहेत. थेट लिंकवर क्लिक करून पाहू शकता.",
-          result: items
-        });
-      }
-
-      if (action.type === "REPO_READ") {
-        const repo = readRepo();
-        return res.json({
-          reply:
-            "मी प्रोजेक्ट वाचला आहे बॉस. खाली स्ट्रक्चर आणि महत्वाच्या गोष्टी दिल्या आहेत.",
-          result: repo
+            "बॉस, काम झालं आहे ✅\nफाइल तयार केली आहे. खाली proof दिला आहे. वापरून पाहा.",
+          proof: result
         });
       }
     }
-// ===== ACTION EXECUTION AFTER APPROVAL =====
-if (
-  memory.pendingAction &&
-  ["हो", "yes", "ok", "कर", "करा"].includes(userMessage.toLowerCase())
-) {
-  const action = memory.pendingAction;
-  memory.pendingAction = null;
 
-  if (action.type === "CREATE_FILE") {
-    const result = createFileAction(action.payload);
+    /* ===== STORE USER MESSAGE ===== */
+    conversationMemory.push({ role: "user", content: userMessage });
+    trimMemory();
 
-    return res.json({
-      reply:
-        "बॉस, फाइल तयार झाली आहे ✅\nखाली proof दिला आहे. वापरून पाहा.",
-      proof: result
-    });
-  }
-}
-    /* ================= OPENAI CHAT ================= */
+    /* ===== OPENAI CALL WITH FULL CONTEXT ===== */
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       temperature: 0.7,
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: userMessage }
+        { role: "system", content: AIX_PROFILE },
+        ...conversationMemory
       ]
     });
 
     const aiReply = completion.choices[0].message.content;
 
-    /* ================= INTENT DETECTION (LIGHT) ================= */
+    /* ===== STORE AI REPLY ===== */
+    conversationMemory.push({ role: "assistant", content: aiReply });
+    trimMemory();
+
+    /* ===== INTENT DETECTION (REAL WORK) ===== */
     const lower = userMessage.toLowerCase();
-if (
-  lower.includes("फाइल बनव") ||
-  lower.includes("file create") ||
-  lower.includes("नवीन फाइल")
-) {
-  memory.pendingAction = {
-    type: "CREATE_FILE",
-    payload: {
-      filename: "aix-proof.txt",
-      content:
-        "This file is generated by AIX on user approval.\nProof of real action."
-    }
-  };
-}
-   
-   // ===== CODE ANALYSIS (NO EXECUTION) =====
-if (
-  lower.includes("प्रोजेक्ट तपास") ||
-  lower.includes("code analysis") ||
-  lower.includes("काय बदल")
-) {
-  const report = analyzeProject();
-
-  return res.json({
-    reply:
-      "बॉस, मी पूर्ण प्रोजेक्ट तपासला आहे.\n" +
-      "काय योग्य आहे, काय सुधारता येईल ते खाली सांगतो.\n" +
-      "पुढे बदल सुचवू का?",
-    analysis: {
-      summary: report.summary,
-      insights: report.insights
-    }
-  });
-} 
-    if (
-      lower.includes("₹") ||
-      lower.includes("कपडे") ||
-      lower.includes("product")
-    ) {
-      memory.pendingAction = {
-        type: "PRODUCT_SEARCH",
-        payload: { budget: 300 }
-      };
-    }
 
     if (
-      lower.includes("repo") ||
-      lower.includes("प्रोजेक्ट") ||
-      lower.includes("code वाच")
+      lower.includes("फाइल बनव") ||
+      lower.includes("create file")
     ) {
-      memory.pendingAction = {
-        type: "REPO_READ"
+      conversationMemory.pendingAction = {
+        type: "CREATE_FILE",
+        payload: {
+          filename: "aix-proof.txt",
+          content:
+            "This file is generated by AIX after understanding context and getting approval."
+        }
       };
     }
 
     return res.json({ reply: aiReply });
+
   } catch (err) {
     console.error("AIX ERROR:", err);
     return res.status(500).json({
-      reply:
-        "थोडी तांत्रिक अडचण आली बॉस. थोड्या वेळाने पुन्हा प्रयत्न करूया."
+      reply: "थोडी तांत्रिक अडचण आली बॉस. पुन्हा प्रयत्न करूया."
     });
   }
 });
