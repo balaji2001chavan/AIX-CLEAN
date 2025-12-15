@@ -3,12 +3,13 @@ import { decisionEngine } from "../brain/decision.js";
 import { ethicsCheck } from "../brain/ethics.js";
 import { executeAction } from "../action/action.executor.js";
 
-// Self-change imports
 import { detectSelfChangeIntent } from "../self-change/change.detector.js";
 import { planChange } from "../self-change/change.planner.js";
 import { generateChange } from "../self-change/change.generator.js";
 import { buildProof } from "../self-change/change.proof.js";
-import { buildConversationalResponse } from "../conversation/response.builder.js";
+
+import { generateLLMResponse } from "../llm/llm.service.js";
+
 export async function aixCommand(req, res) {
   try {
     const input = req.body.query;
@@ -21,7 +22,7 @@ export async function aixCommand(req, res) {
     }
 
     /* ===============================
-       🔁 SELF CHANGE MODE (AIX स्वतः बदल सुचवतो)
+       🔁 SELF CHANGE MODE
     ================================ */
     const isSelfChange = detectSelfChangeIntent(input);
 
@@ -45,10 +46,14 @@ export async function aixCommand(req, res) {
        🧠 NORMAL AIX FLOW
     ================================ */
 
+    // 1️⃣ Reasoning
     const reasoning = reasoningEngine(input);
-    const decision = decisionEngine(reasoning);
-    const ethics = ethicsCheck(decision);
 
+    // 2️⃣ Decision
+    const decision = decisionEngine(reasoning);
+
+    // 3️⃣ Ethics
+    const ethics = ethicsCheck(decision);
     if (!ethics.allowed) {
       return res.json({
         success: false,
@@ -56,19 +61,30 @@ export async function aixCommand(req, res) {
       });
     }
 
+    // 4️⃣ Execution (IMPORTANT FIX)
+    const execution = executeAction({
+      goal: input,
+      context: reasoning.context
+    });
 
-   const finalResponse = buildConversationalResponse({
-  input,
-  intent: reasoning.intent,
-  decision: decision.suggestion,
-  execution
-});
+    // 5️⃣ ChatGPT-style response via LLM
+    const llmReply = await generateLLMResponse({
+      userInput: input,
+      aixState: {
+        intent: reasoning.intent,
+        decision: decision.suggestion,
+        execution
+      }
+    });
 
-return res.json({
-  success: true,
-  response: finalResponse,
-  execution
-});
+    // 6️⃣ FINAL RESPONSE
+    return res.json({
+      success: true,
+      intent: reasoning.intent,
+      response: llmReply,
+      execution
+    });
+
   } catch (error) {
     console.error("AIX ERROR:", error);
     return res.status(500).json({
@@ -76,4 +92,4 @@ return res.json({
       error: "Internal AIX Error"
     });
   }
-                                    }
+}
