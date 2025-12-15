@@ -1,10 +1,13 @@
-export async function act(thought, keyData) {
-  if (keyData.automation === "none") {
-    return { executed: false, reason: "Upgrade required" };
+export function aixAct(intent, keyData) {
+  if (!keyData.automation) {
+    return {
+      executed: false,
+      message: "Automation साठी higher access लागेल"
+    };
   }
 
   return {
     executed: true,
-    work: "Plan / Content / Strategy generated"
+    message: `Intent "${intent}" साठी plan तयार केला आहे`
   };
 }
