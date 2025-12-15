@@ -19,7 +19,17 @@ export function aixBrain({ message }) {
       })
     };
   }
-
+// Repo read intent
+if (
+  t.includes("repo") ||
+  t.includes("code वाच") ||
+  t.includes("प्रोजेक्ट तपास") ||
+  t.includes("फोल्डर")
+) {
+  return {
+    mode: "READ_CODE"
+  };
+}
   // Product intent (advisor-first)
   if (t.includes("₹") || t.includes("कपडे") || t.includes("product")) {
     setMemory({ lastProposal: { type: "PRODUCT_SEARCH" } });
