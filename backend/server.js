@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-
+import { readProject } from "./code-reader/readProject.js";
 import { aixBrain } from "./aix-brain/aixBrain.js";
 import { wrapReply } from "./core/persona/aixPersona.js";
 import { findProducts } from "./services/productSearch.service.js";
@@ -28,7 +28,17 @@ app.post("/api/aix", async (req, res) => {
     if (decision.mode === "EXPLAIN") {
       return res.json({ reply: decision.reply });
     }
+if (decision.mode === "READ_CODE") {
+  const report = readProject(process.cwd());
 
+  return res.json({
+    reply: wrapReply({
+      message:
+        "मी प्रोजेक्ट वाचला आहे बॉस. खाली स्ट्रक्चर आणि माझं निरीक्षण देतो."
+    }),
+    project: report
+  });
+}
     // Proposal (ask permission)
     if (decision.mode === "PROPOSE") {
       memory.lastProposal = decision.proposal;
