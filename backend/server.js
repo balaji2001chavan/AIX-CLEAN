@@ -1,12 +1,20 @@
+/* =====================================================
+   AIX FINAL SERVER.JS
+   - Old AIX Core preserved
+   - New AIX APX API (API KEY based)
+   - No external LLM / No extra key
+   - Render + Node.js v22 compatible
+===================================================== */
+
 import express from "express";
 import cors from "cors";
 import path from "path";
 
-/* ================= CORE ================= */
+/* ================= OLD AIX CORE ================= */
 import { parseCommand } from "./aix-core/core/command-engine/parseCommand.js";
 import { getState, updateState } from "./aix-core/core/state-engine/stateManager.js";
 import { createPlan } from "./aix-core/core/planner/planner.js";
-iimport { aixApxController } from "./aix-apx/apx.controller.js";mport aixRoutes from "./routes/aix.routes.js";
+import aixRoutes from "./routes/aix.routes.js";
 
 /* ================= INSPECT / FIX ================= */
 import { inspectProject } from "./aix-core/inspectors/projectInspector.js";
@@ -21,23 +29,35 @@ import { searchKnowledge } from "./aix-core/executors/knowledge/searchKnowledge.
 import { generateRealImage } from "./aix-core/executors/media/realImageGenerator.js";
 import { generateVideo } from "./aix-core/executors/media/videoGenerator.js";
 
-/* ================= APP ================= */
+/* ================= NEW AIX APX CORE ================= */
+import { aixApxController } from "./aix-apx/apx.controller.js";
+
+/* ================= APP INIT ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.post("/api/aix-apx", aixApxController);
+
+/* ================= ROUTES ================= */
+
+/* Old AIX routes (untouched) */
 app.use("/aix", aixRoutes);
 
+/* New AIX APX API (API KEY based) */
+app.post("/api/aix-apx", aixApxController);
+
 /* serve generated output */
-app.use("/aix-output", express.static(path.join(process.cwd(), "aix-output")));
+app.use(
+  "/aix-output",
+  express.static(path.join(process.cwd(), "aix-output"))
+);
 
 /* ================= HEALTH ================= */
 app.get("/", (req, res) => {
-  res.send("AIX CORE IS LIVE");
+  res.send("AIX CORE + APX API IS LIVE");
 });
 
 /* =====================================================
-   MAIN AIX COMMAND ENDPOINT
+   MAIN OLD AIX COMMAND ENDPOINT (UNCHANGED)
 ===================================================== */
 app.post("/api/aix", async (req, res) => {
   try {
@@ -176,7 +196,7 @@ app.post("/api/aix", async (req, res) => {
       }
     }
 
-    /* ========== VIDEO GENERATOR (DEMO PROOF) ========== */
+    /* ========== VIDEO GENERATOR ========== */
     if (
       command.output?.toLowerCase().includes("video") ||
       command.goal?.toLowerCase().includes("video") ||
