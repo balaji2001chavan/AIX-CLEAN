@@ -9,18 +9,29 @@ import {
 
 export async function runFileCreateJob(job, payload) {
   try {
-    startJob(job.id, "Creating file");
+    // 1. Job start
+    startJob(job.id, "Preparing output directory");
 
-    const dir = path.join(process.cwd(), "output");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    // 👉 FINAL PATH (IMPORTANT)
+    const dir = path.join(process.cwd(), "backend", "output");
 
-    updateJob(job.id, "Writing content");
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    updateJob(job.id, "Writing file");
 
     const filePath = path.join(dir, payload.filename);
-    fs.writeFileSync(filePath, payload.content, "utf8");
 
-    updateJob(job.id, "Finalizing");
+    fs.writeFileSync(
+      filePath,
+      payload.content,
+      "utf8"
+    );
+
+    updateJob(job.id, "File created successfully");
     completeJob(job.id);
+
   } catch (err) {
     failJob(job.id, err.message);
   }
