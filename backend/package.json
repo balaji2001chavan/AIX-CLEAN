@@ -1,14 +1,8 @@
 {
-  "name": "aix-backend",
-  "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "start": "node server.js",
-    "postinstall": "npx playwright install chromium"
-  },
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
-    "playwright": "^1.43.0"
+    "openai": "^4.56.0"
   }
 }
