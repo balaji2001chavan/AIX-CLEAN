@@ -1,17 +1,37 @@
-export function verifyKey(key) {
-  if (!key) return { allowed: false };
+// AIX AUTH CORE – NO EXTERNAL KEY
 
-  if (key.includes("AIX_PRIVATE")) {
-    return { allowed: true, plan: "PRIVATE", automation: "full" };
+const AIX_KEYS = [
+  {
+    key: "AIX_PRIVATE_001",
+    plan: "PRIVATE",
+    automation: true,
+    limit: Infinity
+  },
+  {
+    key: "AIX_PUBLIC_FREE",
+    plan: "FREE",
+    automation: false,
+    limit: 50
+  }
+];
+
+export function verifyAIXKey(authHeader) {
+  if (!authHeader) {
+    return { allowed: false, reason: "API key missing" };
   }
 
-  if (key.includes("AIX_PRO")) {
-    return { allowed: true, plan: "PRO", automation: "limited" };
+  const key = authHeader.replace("Bearer ", "");
+
+  const found = AIX_KEYS.find(k => k.key === key);
+
+  if (!found) {
+    return { allowed: false, reason: "Invalid AIX API key" };
   }
 
-  if (key.includes("AIX_FREE")) {
-    return { allowed: true, plan: "FREE", automation: "none" };
-  }
-
-  return { allowed: false };
+  return {
+    allowed: true,
+    plan: found.plan,
+    automation: found.automation,
+    limit: found.limit
+  };
 }
