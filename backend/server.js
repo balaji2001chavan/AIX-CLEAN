@@ -3,7 +3,7 @@ import cors from "cors";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
-
+import { selfChangeAction } from "./actions/selfChange.action.js";
 /* ================= APP ================= */
 const app = express();
 app.use(cors());
