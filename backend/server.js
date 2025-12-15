@@ -6,7 +6,7 @@ import path from "path";
 import { selfChangeAction } from "./actions/selfChange.action.js";
 import { createJob, getJob } from "./jobs/jobStore.js";
 import { runFileCreateJob } from "./jobs/fileCreate.job.js";
-
+import { runGitHubCommitJob } from "./jobs/githubCommit.job.js";
 /* ================= APP ================= */
 const app = express();
 app.use(cors());
@@ -91,6 +91,21 @@ app.post("/api/aix", async (req, res) => {
     }
 
     /* ===== CHECK APPROVAL ===== */
+  if (
+  conversationMemory.pendingJob &&
+  ["हो","yes","ok","कर"].includes(userMessage.toLowerCase())
+) {
+  const { jobId, type, payload } = conversationMemory.pendingJob;
+  conversationMemory.pendingJob = null;
+
+  if (type === "GITHUB_COMMIT") {
+    runGitHubCommitJob({ id: jobId }, payload);
+    return res.json({
+      reply: "GitHub job सुरू केलं आहे बॉस 🟢",
+      job: getJob(jobId)
+    });
+  }
+}
     if (
       conversationMemory.pendingAction &&
       ["हो", "yes", "ok", "कर", "करा"].includes(userMessage.toLowerCase())
@@ -186,7 +201,25 @@ if (
 
     /* ===== INTENT DETECTION (REAL WORK) ===== */
     const lower = userMessage.toLowerCase();
+if (lower.includes("github") || lower.includes("commit")) {
+  const job = createJob("GitHub Commit");
 
+  conversationMemory.pendingJob = {
+    jobId: job.id,
+    type: "GITHUB_COMMIT",
+    payload: {
+      paths: ["output/aix-job-proof.txt"],
+      message: "AIX automated commit"
+    }
+  };
+
+  return res.json({
+    reply:
+      "बॉस, बदल GitHub वर commit करू शकतो.\n" +
+      "हे केल्यावर repo मध्ये लगेच दिसेल.\nकरू का?",
+    job
+  });
+}
     if (
       lower.includes("फाइल बनव") ||
       lower.includes("create file")
