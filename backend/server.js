@@ -99,7 +99,25 @@ app.post("/api/aix", async (req, res) => {
         });
       }
     }
+// ===== SELF CHANGE EXECUTION =====
+if (
+  conversationMemory.pendingAction &&
+  ["हो", "yes", "ok", "कर", "करा"].includes(userMessage.toLowerCase())
+) {
+  const action = conversationMemory.pendingAction;
+  conversationMemory.pendingAction = null;
 
+  if (action.type === "SELF_CHANGE") {
+    const proof = selfChangeAction(action.payload);
+
+    return res.json({
+      reply:
+        "बॉस, मी स्वतःसाठी बदलाचा प्लॅन तयार केला आहे ✅\n" +
+        "हा माझा विचार आहे. पुढच्या स्टेपला execute करू का?",
+      proof
+    });
+  }
+}
     /* ===== STORE USER MESSAGE ===== */
     conversationMemory.push({ role: "user", content: userMessage });
     trimMemory();
@@ -136,7 +154,28 @@ app.post("/api/aix", async (req, res) => {
         }
       };
     }
-
+if (
+  lower.includes("स्वतः बदल") ||
+  lower.includes("self change") ||
+  lower.includes("काय बदल")
+) {
+  conversationMemory.pendingAction = {
+    type: "SELF_CHANGE",
+    payload: {
+      title: "Improve AIX Project Structure",
+      plan: {
+        why:
+          "सध्याचा प्रोजेक्ट वाढतोय. पुढे features वाढवण्यासाठी clarity आणि control आवश्यक आहे.",
+        what:
+          "Code analysis, action engines आणि memory modules वेगळे करणे.",
+        how:
+          "analysis/, actions/, memory/ असे modules बनवून refactor करणे.",
+        result:
+          "AIX अधिक smart होईल, बदल सोपे होतील आणि चुका कमी होतील."
+      }
+    }
+  };
+}
     return res.json({ reply: aiReply });
 
   } catch (err) {
