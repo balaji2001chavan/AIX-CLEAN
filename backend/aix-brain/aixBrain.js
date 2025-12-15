@@ -1,51 +1,42 @@
 import { wrapReply } from "../core/persona/aixPersona.js";
+import { getMemory, setMemory } from "../memory/memoryStore.js";
 
-export function aixBrain({ message, memory }) {
+export function aixBrain({ message }) {
   const t = message.toLowerCase().trim();
+  const memory = getMemory();
 
   // Permission
-  if (t === "हो" || t === "yes" || t.includes("करा")) {
-    return { mode: "ACT" };
-  }
+  if (t === "हो" || t === "yes" || t.includes("करा")) return { mode: "ACT" };
 
-  // Product intent (advisor-first)
-  if (t.includes("₹") || t.includes("कपडे") || t.includes("product")) {
-    return {
-      mode: "PROPOSE",
-      proposal: {
-        type: "PRODUCT_SEARCH",
-        impact:
-          "मी लाईव्ह प्रॉडक्ट्स शोधेन. थेट seller स्क्रीन उघडेल. कोणताही व्यवहार AIX करत नाही."
-      },
-      reply: wrapReply({
-        message:
-          "मी समजलो बॉस 👍\n₹300 मध्ये प्रॉडक्ट्स शोधू शकतो.\nआधी confirm करा – men, women की kids?\n\nपरिणाम: लाईव्ह items + थेट स्क्रीन. करू का?"
-      })
-    };
-  }
-
-  // Knowledge / discussion
-  if (
-    t.includes("माहिती") ||
-    t.includes("future") ||
-    t.includes("market") ||
-    t.includes("घडामोड")
-  ) {
+  // Knowledge intent
+  if (t.includes("घडामोड") || t.includes("news") || t.includes("future") || t.includes("market")) {
+    setMemory({ lastTopic: "knowledge" });
     return {
       mode: "EXPLAIN",
       reply: wrapReply({
         message:
-          "हा महत्वाचा विषय आहे बॉस. मी आधी समजावतो, मग पुढचं योग्य पाऊल सुचवतो."
+          "मी general trends समजावतो बॉस. लाईव्ह verify करायचं असेल तर सांगा—करू का?"
       })
     };
   }
 
-  // Default human advisor
+  // Product intent (advisor-first)
+  if (t.includes("₹") || t.includes("कपडे") || t.includes("product")) {
+    setMemory({ lastProposal: { type: "PRODUCT_SEARCH" } });
+    return {
+      mode: "PROPOSE",
+      reply: wrapReply({
+        message:
+          "₹300 मध्ये प्रॉडक्ट्स शोधू शकतो.\nmen, women की kids?\nपरिणाम: लाईव्ह items + थेट स्क्रीन. करू का?"
+      })
+    };
+  }
+
   return {
     mode: "EXPLAIN",
     reply: wrapReply({
       message:
-        "मी ऐकतोय बॉस. तुम्हाला माहिती हवी आहे, सल्ला हवा आहे की मी काही रियल करून दाखवू?"
+        "मी ऐकतोय बॉस. माहिती, सल्ला की रियल काम—काय हवं आहे?"
     })
   };
 }
