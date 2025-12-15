@@ -16,7 +16,10 @@ app.use(express.json());
 app.post("/api/aix", async (req, res) => {
   try {
     const message = req.body.message || "";
-
+app.post("/api/aix-apx", (req, res) => {
+  // same handler as /api/aix
+  return res.redirect(307, "/api/aix");
+});
     // 🧠 AIX BRAIN decides
     const decision = aixBrain({ message });
 
