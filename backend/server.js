@@ -4,155 +4,150 @@ import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
 import { execSync } from "child_process";
-import { addToMemory, getMemory } from "./memory/memoryStore.js";
-import { AIX_TOOLS } from "./tools/toolRegistry.js";
+
 const app = express();
 app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 10000;
 
-/* ================= OPENAI ================= */
-const pastMemory = getMemory();
+/* ============ OPENAI ============ */
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+if (!process.env.OPENAI_API_KEY) {
+  console.error("❌ OPENAI_API_KEY missing");
+}
 
-const completion = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  temperature: 0.7,
-  messages: [
-    {
-      role: "system",
-      content: `
-You are AIX.
-You know your own capabilities and limits.
-
-Your tools:
-${AIX_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n")}
-
-You explain clearly what you can do.
-You guide the user how to grow AIX to world-class level.
-`
-    },
-    ...pastMemory.map(m => ({ role: m.role, content: m.content })),
-    { role: "user", content: userMessage }
-  ]
-});
-
-/* ================= MEMORY ================= */
+/* ============ STATE ============ */
 let memory = [];
-let pendingAction = null;
+let pending = null; // { type, data }
 
-/* ================= HEALTH ================= */
-app.get("/", (req, res) => {
-  res.send("AIX MASTER AI LIVE");
-});
+/* ============ HELPERS ============ */
+const REPO_ROOT = path.join(process.cwd(), "backend"); // repo view scope
 
-/* ================= MAIN AI ================= */
+function readRepoSnapshot(maxFiles = 50) {
+  const out = [];
+  function walk(dir) {
+    if (out.length >= maxFiles) return;
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    for (const it of items) {
+      if (out.length >= maxFiles) break;
+      const p = path.join(dir, it.name);
+      if (it.isDirectory()) {
+        if (["node_modules", ".git"].includes(it.name)) continue;
+        walk(p);
+      } else {
+        if (!/\.(js|json|md|txt)$/i.test(it.name)) continue;
+        try {
+          const c = fs.readFileSync(p, "utf8");
+          out.push({ file: p.replace(process.cwd()+"/",""), content: c.slice(0, 4000) });
+        } catch {}
+      }
+    }
+  }
+  walk(REPO_ROOT);
+  return out;
+}
+
+function applyPatch(filePath, newContent) {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, newContent, "utf8");
+}
+
+/* ============ HEALTH ============ */
+app.get("/", (_, res) => res.send("AIX MASTER LIVE"));
+
+/* ============ MAIN ============ */
 app.post("/api/aix", async (req, res) => {
   try {
-    const userMessage = req.body.message;
-    console.log("USER:", userMessage);
+    const user = (req.body.message || "").trim();
+    if (!user) return res.json({ reply: "काय करायचं आहे बॉस?" });
 
-    if (!userMessage) {
-      return res.json({ reply: "काय मदत हवी आहे बॉस?" });
-    }
+    // APPROVAL
+    if (pending && ["हो","yes","ok","कर"].includes(user.toLowerCase())) {
+      const job = pending; pending = null;
 
-    /* ---------- APPROVAL ---------- */
-    if (
-      pendingAction &&
-      ["हो", "yes", "ok", "कर"].includes(userMessage.toLowerCase())
-    ) {
-      const action = pendingAction;
-      pendingAction = null;
-
-      /* FILE CREATE */
-      if (action.type === "FILE_CREATE") {
-        const dir = path.join(process.cwd(), "backend", "output");
-        fs.mkdirSync(dir, { recursive: true });
-        const filePath = path.join(dir, "aix-proof.txt");
-        fs.writeFileSync(
-          filePath,
-          "This proof file is created by AIX.",
-          "utf8"
-        );
-
-        return res.json({
-          reply:
-            "✅ बॉस, फाइल तयार झाली आहे.\n" +
-            "Path: backend/output/aix-proof.txt\n" +
-            "वापरून पाहा."
-        });
-      }
-
-      /* GITHUB COMMIT */
-      if (action.type === "GITHUB_COMMIT") {
-        execSync(`git add backend/output/aix-proof.txt`);
-        execSync(`git commit -m "AIX proof commit"`);
+      if (job.type === "APPLY_PATCH") {
+        const { file, content, commitMsg } = job.data;
+        applyPatch(file, content);
+        execSync(`git add ${file}`);
+        execSync(`git commit -m "${commitMsg}"`);
         execSync(`git push origin main`);
-
         return res.json({
           reply:
-            "✅ GitHub वर commit झाला आहे.\n" +
+            "✅ बदल लागू केले आणि GitHub वर commit केला.\n" +
             "Proof: https://github.com/balaji2001chavan/AIX-CLEAN/commits/main\n" +
             "वापरून पाहा."
         });
       }
     }
 
-    /* ---------- AI BRAIN ---------- */
-    memory.push({ role: "user", content: userMessage });
+    // MEMORY
+    memory.push({ role: "user", content: user });
     if (memory.length > 12) memory = memory.slice(-12);
 
+    // REPO SNAPSHOT (read-only)
+    const snapshot = readRepoSnapshot();
+
+    // AI BRAIN
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.7,
+      temperature: 0.6,
       messages: [
         {
           role: "system",
           content: `
-You are AIX.
-You speak like ChatGPT.
-You are practical, honest, and human-like.
-You explain what is possible and what is not.
-You suggest actions and ask before doing them.
-You think in business, technology, and reality.
+You are AIX, an AI Engineer & Operator.
+You read the repository snapshot, explain issues, propose concrete fixes,
+show before/after, ask approval, then apply changes with proof.
+Never claim impossible powers. Be practical.
 `
         },
+        { role: "system", content: `Repository snapshot:\n${JSON.stringify(snapshot)}` },
         ...memory
       ]
     });
 
-    const aiReply = completion.choices[0].message.content;
-    memory.push({ role: "assistant", content: aiReply });
+    const reply = completion.choices[0].message.content;
+    memory.push({ role: "assistant", content: reply });
 
-    /* ---------- ACTION SUGGEST ---------- */
-    let suggestion = null;
-    if (aiReply.toLowerCase().includes("file")) {
-      suggestion = { type: "FILE_CREATE" };
-    }
-    if (aiReply.toLowerCase().includes("github")) {
-      suggestion = { type: "GITHUB_COMMIT" };
-    }
-
-    if (suggestion) {
-      pendingAction = suggestion;
-      return res.json({
-        reply:
-          aiReply +
-          "\n\nहे काम मी रियल करू शकतो.\nकरू का बॉस?"
+    // Simple action detection (patch intent)
+    if (/fix|repair|improve|refactor|bug/i.test(reply)) {
+      // Ask AI for a concrete patch
+      const patch = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: "Propose ONE concrete patch. Output JSON only." },
+          { role: "user", content:
+`Target one file. Provide:
+{
+ "file": "backend/...",
+ "newContent": "...",
+ "commitMsg": "..."
+}` }
+        ]
       });
+
+      try {
+        const data = JSON.parse(patch.choices[0].message.content);
+        pending = { type: "APPLY_PATCH", data };
+        return res.json({
+          reply:
+            reply +
+            "\n\nमी हा बदल रियल लागू करू शकतो.\n" +
+            `File: ${data.file}\nCommit: ${data.commitMsg}\n` +
+            "करू का बॉस?"
+        });
+      } catch {
+        return res.json({ reply });
+      }
     }
 
-    return res.json({ reply: aiReply });
-addToMemory("user", userMessage);
-addToMemory("assistant", aiReply);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      reply: "AIX मध्ये तांत्रिक अडचण आली आहे."
-    });
+    return res.json({ reply });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ reply: "AIX मध्ये तांत्रिक अडचण आली आहे." });
   }
 });
 
-/* ================= START ================= */
-app.listen(PORT, () => {
-  console.log("🚀 AIX MASTER AI running on port", PORT);
-});
+app.listen(PORT, () => console.log("🚀 AIX running on", PORT));
