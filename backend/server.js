@@ -142,7 +142,8 @@ You think in business, technology, and reality.
     }
 
     return res.json({ reply: aiReply });
-
+addToMemory("user", userMessage);
+addToMemory("assistant", aiReply);
   } catch (err) {
     console.error(err);
     res.status(500).json({
