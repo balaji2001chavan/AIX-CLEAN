@@ -2,71 +2,91 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import { execSync } from "child_process";
+import rateLimit from "express-rate-limit";
 
 const app = express();
-app.use(cors());
-app.use(express.json());
 
+/* ===== SECURITY ===== */
+const ALLOW_ORIGINS = [
+  "https://boss-aix-frontend.onrender.com",
+  "http://localhost:3000"
+];
+app.use(cors({
+  origin: (o, cb) => (!o || ALLOW_ORIGINS.includes(o)) ? cb(null, true) : cb(new Error("CORS blocked")),
+  methods: ["GET","POST"]
+}));
+app.use(express.json({ limit: "256kb" }));
+app.use(rateLimit({ windowMs: 60_000, max: 60 })); // 60 req/min
+
+/* ===== STATE ===== */
+let job = null;
+const STARTED_AT = Date.now();
+
+/* ===== PATHS ===== */
 const ROOT = process.cwd();
-const OUTPUT = path.join(ROOT, "public", "output");
+const PUBLIC = path.join(ROOT, "public");
+const OUTPUT = path.join(PUBLIC, "output");
 fs.mkdirSync(OUTPUT, { recursive: true });
 
-let currentJob = null;
+/* ===== HELPERS ===== */
+function audit(line){
+  const f = path.join(ROOT, "audit.log");
+  fs.appendFileSync(f, `[${new Date().toISOString()}] ${line}\n`);
+}
+function safeJob(type){
+  return ["video","image"].includes(type);
+}
 
-/* ========== LIVE STATUS ========== */
-app.get("/api/status", (req, res) => {
+/* ===== STATUS ===== */
+app.get("/api/status", (req,res)=>{
   res.json({
-    running: !!currentJob,
-    job: currentJob
+    mode:"AUTO-HYBRID",
+    running:!!job,
+    job,
+    uptimeSeconds: Math.floor((Date.now()-STARTED_AT)/1000)
   });
 });
 
-/* ========== START JOB ========== */
-app.post("/api/start", (req, res) => {
-  const { type } = req.body;
+/* ===== LOGS ===== */
+app.get("/api/logs", (req,res)=>{
+  res.json(job?.logs || []);
+});
 
-  currentJob = {
+/* ===== START JOB (WHITELISTED) ===== */
+app.post("/api/start",(req,res)=>{
+  const { type } = req.body || {};
+  if(!safeJob(type)) return res.status(400).json({error:"Invalid job"});
+  job = {
+    id: crypto.randomUUID(),
     type,
-    logs: ["Job started"],
-    output: null,
+    logs: ["Job accepted","Planning","Rendering…"],
+    output:null,
     startedAt: Date.now()
   };
+  audit(`JOB_START ${job.id} ${type}`);
 
-  // simulate video generation
-  setTimeout(() => {
-    currentJob.logs.push("Rendering video...");
-  }, 1500);
+  // simulate generation (replace with FFmpeg/tool later)
+  setTimeout(()=>{
+    const out = path.join(OUTPUT, "demo.mp4");
+    fs.writeFileSync(out, "DEMO"); // placeholder
+    job.logs.push("Output ready");
+    job.output = "/output/demo.mp4";
+    audit(`JOB_DONE ${job.id}`);
+  }, 3000);
 
-  setTimeout(() => {
-    const demoVideo = path.join(OUTPUT, "demo.mp4");
-    fs.writeFileSync(demoVideo, "FAKE VIDEO DATA");
-
-    currentJob.output = "/output/demo.mp4";
-    currentJob.logs.push("Video ready");
-
-    // proof commit (optional)
-    try {
-      execSync("git add .");
-      execSync("git commit -m 'AIX live proof'");
-    } catch {}
-
-  }, 3500);
-
-  res.json({ ok: true });
+  res.json({ ok:true, jobId: job.id });
 });
 
-/* ========== LIVE LOGS (POLL) ========== */
-app.get("/api/logs", (req, res) => {
-  res.json(currentJob?.logs || []);
+/* ===== STATIC ===== */
+app.use("/output", express.static(OUTPUT, { immutable:true, maxAge:"1h" }));
+app.use(express.static(PUBLIC));
+
+/* ===== FALLBACK ===== */
+app.use((err,req,res,next)=>{
+  audit(`ERROR ${err.message}`);
+  res.status(400).json({error:"Request blocked"});
 });
 
-/* ========== STATIC FILES ========== */
-app.use("/output", express.static(OUTPUT));
-app.use(express.static("public"));
-
-/* ========== START ========== */
+/* ===== START ===== */
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log("🔥 AIX LIVE STUDIO running on", PORT)
-);
+app.listen(PORT, ()=>console.log("🔒 AIX Hardened Server on", PORT));
