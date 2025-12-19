@@ -21,7 +21,7 @@ let memory = [];
 let pending = null; // { type, data }
 
 /* ============ HELPERS ============ */
-const REPO_ROOT = path.join(process.cwd(), "backend"); // repo view scope
+const REPO_ROOT = process.cwd();q
 
 function readRepoSnapshot(maxFiles = 50) {
   const out = [];
