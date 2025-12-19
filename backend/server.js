@@ -4,15 +4,36 @@ import fs from "fs";
 import path from "path";
 import OpenAI from "openai";
 import { execSync } from "child_process";
-
+import { addToMemory, getMemory } from "./memory/memoryStore.js";
+import { AIX_TOOLS } from "./tools/toolRegistry.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 10000;
 
 /* ================= OPENAI ================= */
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const pastMemory = getMemory();
+
+const completion = await openai.chat.completions.create({
+  model: "gpt-4o-mini",
+  temperature: 0.7,
+  messages: [
+    {
+      role: "system",
+      content: `
+You are AIX.
+You know your own capabilities and limits.
+
+Your tools:
+${AIX_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n")}
+
+You explain clearly what you can do.
+You guide the user how to grow AIX to world-class level.
+`
+    },
+    ...pastMemory.map(m => ({ role: m.role, content: m.content })),
+    { role: "user", content: userMessage }
+  ]
 });
 
 /* ================= MEMORY ================= */
