@@ -74,6 +74,10 @@ app.get("/api/logs", (req, res) => {
 });
 
 /* ================= START JOB ================= */
+import { exec } from "child_process";
+
+// ...
+
 app.post("/api/start", (req, res) => {
   const { type } = req.body || {};
   if (!["video", "image"].includes(type)) {
@@ -83,12 +87,38 @@ app.post("/api/start", (req, res) => {
   job = {
     id: crypto.randomUUID(),
     type,
-    logs: ["Job accepted", "Planning", "Rendering…"],
+    logs: ["Job accepted", "Planning"],
     output: null,
     startedAt: Date.now()
   };
-
   audit(`JOB_START ${job.id} ${type}`);
+
+  // Paths
+  const out = path.join(OUTPUT, "demo.mp4");
+  const img = path.join(OUTPUT, "frame.png");
+
+  // 1) Create a frame (image)
+  setTimeout(() => {
+    job.logs.push("Rendering frame");
+    exec(
+      `ffmpeg -y -f lavfi -i color=c=black:s=1080x1920:d=1 -vf "drawtext=text='AIX • REAL VIDEO':fontcolor=white:fontsize=64:x=(w-text_w)/2:y=(h-text_h)/2" ${img}`,
+      () => {
+        // 2) Convert frame → MP4 (15 sec)
+        job.logs.push("Encoding MP4");
+        exec(
+          `ffmpeg -y -loop 1 -i ${img} -t 15 -vf "scale=1080:1920,format=yuv420p" ${out}`,
+          () => {
+            job.logs.push("Output ready");
+            job.output = "/output/demo.mp4";
+            audit(`JOB_DONE ${job.id}`);
+          }
+        );
+      }
+    );
+  }, 500);
+
+  res.json({ success: true, jobId: job.id });
+});
 
   // simulate generation
   setTimeout(() => {
