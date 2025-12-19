@@ -1,56 +1,84 @@
 import express from "express";
 import cors from "cors";
+import fs from "fs";
+import path from "path";
 import OpenAI from "openai";
+import { execSync } from "child_process";
 
-/* ================= APP ================= */
 const app = express();
 app.use(cors());
 app.use(express.json());
 const PORT = process.env.PORT || 10000;
-
-/* ================= DEBUG ================= */
-console.log("🔥 AIX SERVER FILE LOADED");
 
 /* ================= OPENAI ================= */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-if (!process.env.OPENAI_API_KEY) {
-  console.error("❌ OPENAI_API_KEY NOT FOUND");
-}
-
 /* ================= MEMORY ================= */
-let conversation = [];
+let memory = [];
+let pendingAction = null;
 
 /* ================= HEALTH ================= */
 app.get("/", (req, res) => {
-  res.send("AIX AI BRAIN SERVER LIVE");
+  res.send("AIX MASTER AI LIVE");
 });
 
-/* ================= MAIN AI ENDPOINT ================= */
+/* ================= MAIN AI ================= */
 app.post("/api/aix", async (req, res) => {
   try {
-    console.log("👉 /api/aix HIT:", req.body);
-
     const userMessage = req.body.message;
+    console.log("USER:", userMessage);
 
     if (!userMessage) {
-      return res.json({
-        reply: "काय सांगायचं आहे बॉस?"
-      });
+      return res.json({ reply: "काय मदत हवी आहे बॉस?" });
     }
 
-    // Store user message
-    conversation.push({
-      role: "user",
-      content: userMessage
-    });
+    /* ---------- APPROVAL ---------- */
+    if (
+      pendingAction &&
+      ["हो", "yes", "ok", "कर"].includes(userMessage.toLowerCase())
+    ) {
+      const action = pendingAction;
+      pendingAction = null;
 
-    // Limit memory
-    if (conversation.length > 10) {
-      conversation = conversation.slice(-10);
+      /* FILE CREATE */
+      if (action.type === "FILE_CREATE") {
+        const dir = path.join(process.cwd(), "backend", "output");
+        fs.mkdirSync(dir, { recursive: true });
+        const filePath = path.join(dir, "aix-proof.txt");
+        fs.writeFileSync(
+          filePath,
+          "This proof file is created by AIX.",
+          "utf8"
+        );
+
+        return res.json({
+          reply:
+            "✅ बॉस, फाइल तयार झाली आहे.\n" +
+            "Path: backend/output/aix-proof.txt\n" +
+            "वापरून पाहा."
+        });
+      }
+
+      /* GITHUB COMMIT */
+      if (action.type === "GITHUB_COMMIT") {
+        execSync(`git add backend/output/aix-proof.txt`);
+        execSync(`git commit -m "AIX proof commit"`);
+        execSync(`git push origin main`);
+
+        return res.json({
+          reply:
+            "✅ GitHub वर commit झाला आहे.\n" +
+            "Proof: https://github.com/balaji2001chavan/AIX-CLEAN/commits/main\n" +
+            "वापरून पाहा."
+        });
+      }
     }
+
+    /* ---------- AI BRAIN ---------- */
+    memory.push({ role: "user", content: userMessage });
+    if (memory.length > 12) memory = memory.slice(-12);
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
@@ -59,46 +87,50 @@ app.post("/api/aix", async (req, res) => {
         {
           role: "system",
           content: `
-You are AIX (Action Intelligence X).
-
+You are AIX.
 You speak like ChatGPT.
-You are human-like, intelligent, practical.
-You understand intent, emotions, and context.
-You reply in Marathi, Hindi, or English as needed.
-
-You suggest real actions and explain before acting.
-You never repeat the same reply.
-You sound like a trusted advisor, not a bot.
+You are practical, honest, and human-like.
+You explain what is possible and what is not.
+You suggest actions and ask before doing them.
+You think in business, technology, and reality.
 `
         },
-        ...conversation
+        ...memory
       ]
     });
 
     const aiReply = completion.choices[0].message.content;
+    memory.push({ role: "assistant", content: aiReply });
 
-    console.log("🤖 AIX REPLY:", aiReply);
+    /* ---------- ACTION SUGGEST ---------- */
+    let suggestion = null;
+    if (aiReply.toLowerCase().includes("file")) {
+      suggestion = { type: "FILE_CREATE" };
+    }
+    if (aiReply.toLowerCase().includes("github")) {
+      suggestion = { type: "GITHUB_COMMIT" };
+    }
 
-    // Store assistant reply
-    conversation.push({
-      role: "assistant",
-      content: aiReply
-    });
+    if (suggestion) {
+      pendingAction = suggestion;
+      return res.json({
+        reply:
+          aiReply +
+          "\n\nहे काम मी रियल करू शकतो.\nकरू का बॉस?"
+      });
+    }
 
-    return res.json({
-      reply: aiReply
-    });
+    return res.json({ reply: aiReply });
 
   } catch (err) {
-    console.error("❌ AIX ERROR:", err);
-    return res.status(500).json({
-      reply: "AIX मध्ये तांत्रिक अडचण आली आहे.",
-      error: err.message
+    console.error(err);
+    res.status(500).json({
+      reply: "AIX मध्ये तांत्रिक अडचण आली आहे."
     });
   }
 });
 
 /* ================= START ================= */
 app.listen(PORT, () => {
-  console.log("🚀 AIX AI BRAIN running on port", PORT);
+  console.log("🚀 AIX MASTER AI running on port", PORT);
 });
