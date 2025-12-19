@@ -21,7 +21,7 @@ let memory = [];
 let pending = null; // { type, data }
 
 /* ============ HELPERS ============ */
-const REPO_ROOT = process.cwd();q
+const REPO_ROOT = process.cwd();
 
 function readRepoSnapshot(maxFiles = 50) {
   const out = [];
