@@ -17,110 +17,84 @@ const openai = new OpenAI({
 
 /* ================= STATE ================= */
 let memory = [];
-let pendingAction = null;
+let pending = null;
 
-/* ================= REPO ROOT ================= */
-const REPO_ROOT = process.cwd();
+/* ================= PATH ================= */
+const ROOT = process.cwd();
+const OUTPUT_DIR = path.join(ROOT, "backend", "output");
 
-/* ================= HELPERS ================= */
-function readRepo(limit = 30) {
-  const files = [];
-
-  function walk(dir) {
-    if (files.length >= limit) return;
-
-    const items = fs.readdirSync(dir, { withFileTypes: true });
-    for (const item of items) {
-      if (files.length >= limit) break;
-
-      const fullPath = path.join(dir, item.name);
-
-      if (item.isDirectory()) {
-        if (["node_modules", ".git"].includes(item.name)) continue;
-        walk(fullPath);
-      } else if (item.name.endsWith(".js")) {
-        try {
-          const content = fs.readFileSync(fullPath, "utf8");
-          files.push({
-            file: fullPath.replace(REPO_ROOT + "/", ""),
-            content: content.slice(0, 3000)
-          });
-        } catch {}
-      }
-    }
+/* ================= UTILS ================= */
+function ensureOutput() {
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
-
-  walk(REPO_ROOT);
-  return files;
 }
 
-function createProofFile(filename, content) {
-  const outDir = path.join(REPO_ROOT, "backend", "output");
-  if (!fs.existsSync(outDir)) {
-    fs.mkdirSync(outDir, { recursive: true });
-  }
-
-  const filePath = path.join(outDir, filename);
+function createFile(name, content) {
+  ensureOutput();
+  const filePath = path.join(OUTPUT_DIR, name);
   fs.writeFileSync(filePath, content, "utf8");
-
-  return `/backend/output/${filename}`;
+  return `/backend/output/${name}`;
 }
 
 /* ================= HEALTH ================= */
 app.get("/", (req, res) => {
-  res.send("AIX SERVER LIVE");
+  res.send("AIX HYBRID FINAL LIVE");
 });
 
-/* ================= MAIN AIX ================= */
+/* ================= AIX CORE ================= */
 app.post("/api/aix", async (req, res) => {
   try {
-    const userMsg = (req.body.message || "").trim();
-    if (!userMsg) {
+    const user = (req.body.message || "").trim();
+    if (!user) {
       return res.json({ reply: "काय करायचं आहे बॉस?" });
     }
 
     /* ===== APPROVAL STEP ===== */
-    if (pendingAction && userMsg.toLowerCase() === "हो") {
-      const action = pendingAction;
-      pendingAction = null;
+    if (pending && user.toLowerCase() === "हो") {
+      const job = pending;
+      pending = null;
 
-      if (action.type === "CREATE_FILE") {
-        const filePath = createProofFile(
-          action.filename,
-          action.content
-        );
+      if (job.type === "CREATE_PROOF") {
+        const filePath = createFile(job.file, job.content);
+
+        const proof = {
+          success: true,
+          file: job.file,
+          path: filePath,
+          timestamp: new Date().toISOString()
+        };
+
+        createFile("proof.json", JSON.stringify(proof, null, 2));
 
         return res.json({
           reply:
-            "✅ रियल फाइल तयार झाली आहे.\n" +
-            `Path: ${filePath}\n` +
+            "✅ रियल काम पूर्ण झालं आहे.\n\n" +
+            `File: ${filePath}\n` +
+            "Proof: /backend/output/proof.json\n" +
             "वापरून पाहा."
         });
       }
     }
 
-    memory.push({ role: "user", content: userMsg });
-    if (memory.length > 10) memory = memory.slice(-10);
+    /* ===== MEMORY (LOW TOKEN) ===== */
+    memory.push({ role: "user", content: user });
+    if (memory.length > 4) memory = memory.slice(-4);
 
-    const repoSnapshot = readRepo();
-
+    /* ===== AI THINKING (LOW TOKEN PROMPT) ===== */
     const ai = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      temperature: 0.5,
+      temperature: 0.4,
       messages: [
         {
           role: "system",
           content: `
 You are AIX.
-You speak like a smart Indian assistant.
-You analyze repository code.
-You suggest real, legal, practical actions.
-You always ask permission before execution.
+You are a practical Indian AI Operator.
+You do not hallucinate.
+You explain first, then ask permission.
+You only do real, legal actions.
 `
-        },
-        {
-          role: "system",
-          content: `Repository snapshot:\n${JSON.stringify(repoSnapshot)}`
         },
         ...memory
       ]
@@ -129,26 +103,27 @@ You always ask permission before execution.
     const reply = ai.choices[0].message.content;
     memory.push({ role: "assistant", content: reply });
 
-    /* ===== SIMPLE ACTION DETECTION ===== */
-    if (/file|proof|create/i.test(userMsg)) {
-      pendingAction = {
-        type: "CREATE_FILE",
-        filename: "aix-proof.txt",
-        content: "This proof file was created by AIX."
+    /* ===== SIMPLE INTENT ===== */
+    if (/file|proof|planner|demo/i.test(user)) {
+      pending = {
+        type: "CREATE_PROOF",
+        file: "planner-demo.txt",
+        content:
+          "This file was created by AIX as a real proof of execution."
       };
 
       return res.json({
         reply:
           reply +
-          "\n\nमी एक रियल proof फाइल तयार करू शकतो.\n" +
+          "\n\nमी एक रियल फाइल आणि proof तयार करू शकतो.\n" +
           "करू का बॉस?"
       });
     }
 
     return res.json({ reply });
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({
       reply: "AIX मध्ये तांत्रिक अडचण आली आहे."
     });
@@ -157,5 +132,5 @@ You always ask permission before execution.
 
 /* ================= START ================= */
 app.listen(PORT, () => {
-  console.log("🚀 AIX running on port", PORT);
+  console.log("🚀 AIX Hybrid Final running on", PORT);
 });
