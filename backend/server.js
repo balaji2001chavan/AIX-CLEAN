@@ -7,88 +7,172 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const ROOT = process.cwd();
-const PROJECTS = path.join(ROOT, "backend/projects");
+const PORT = process.env.PORT || 10000;
 
-if (!fs.existsSync(PROJECTS)) fs.mkdirSync(PROJECTS, { recursive: true });
-
-let lastStatus = {
-  mode: "READY",
-  message: "AIX is idle",
-  output: null
+/* ===============================
+   AIX MEMORY (simple but effective)
+================================ */
+let memory = {
+  lastIntent: null,
+  lastProject: null,
+  awaitingApproval: false,
 };
 
-// -------- SMART COMMAND ----------
-app.post("/api/command", async (req, res) => {
-  const { project, message } = req.body;
+/* ===============================
+   INTENT DETECTION (SMART)
+================================ */
+function detectIntent(message) {
+  const m = message.toLowerCase();
 
-  if (!message) {
-    return res.json({ reply: "बॉस, काय करायचं आहे ते सांगा." });
+  if (m.includes("reel") || m.includes("video")) return "VIDEO_CREATE";
+  if (m.includes("image") || m.includes("poster")) return "IMAGE_CREATE";
+  if (m.includes("map") || m.includes("location")) return "MAP_PREVIEW";
+  if (m.includes("business") || m.includes("idea")) return "BUSINESS_EXPLAIN";
+
+  return "GENERAL_CHAT";
+}
+
+/* ===============================
+   THINK PHASE
+================================ */
+function think(message) {
+  const intent = detectIntent(message);
+
+  return {
+    intent,
+    needsClarification:
+      intent !== "GENERAL_CHAT" &&
+      !memory.lastProject &&
+      !message.includes(":"),
+  };
+}
+
+/* ===============================
+   DECIDE PHASE
+================================ */
+function decide(thought) {
+  if (thought.needsClarification) {
+    return {
+      mode: "CLARIFY",
+      text:
+        "बॉस, सुरू करण्याआधी थोडी माहिती हवी आहे.\n" +
+        "👉 प्रॉडक्ट/विषय काय आहे?\n" +
+        "👉 Audience कोण आहे?",
+    };
   }
 
-  const projectName =
-    project || message.split(" ").slice(0, 3).join("-");
+  return {
+    mode: "DEMO",
+    text: "बॉस, हा output असा दिसेल 👇",
+  };
+}
 
-  const projectDir = path.join(PROJECTS, projectName);
-  if (!fs.existsSync(projectDir)) fs.mkdirSync(projectDir);
+/* ===============================
+   EXECUTE PHASE (REAL FILE PROOF)
+================================ */
+function execute(intent) {
+  const outputDir = path.join(process.cwd(), "output");
+  if (!fs.existsSync(outputDir)) fs.mkdirSync(outputDir);
 
-  // SIMPLE INTELLIGENCE (Phase-1)
-  if (message.toLowerCase().includes("reel")) {
-    const proof = {
-      action: "VIDEO_PLAN",
-      duration: "15s",
-      format: "vertical",
-      status: "READY_TO_EXECUTE"
-    };
+  const timestamp = new Date().toISOString();
+  const proofFile = path.join(outputDir, "proof.json");
 
-    fs.writeFileSync(
-      path.join(projectDir, "proof.json"),
-      JSON.stringify(proof, null, 2)
-    );
+  const proof = {
+    intent,
+    message: "Execution completed successfully",
+    timestamp,
+  };
 
-    lastStatus = {
-      mode: "WAITING_CONFIRMATION",
-      message: "15 सेकंदाचा Instagram Reel तयार करायचा आहे. सुरू करू?",
-      output: null
-    };
+  fs.writeFileSync(proofFile, JSON.stringify(proof, null, 2));
 
-    return res.json({ reply: lastStatus.message });
+  return {
+    file: "/output/proof.json",
+    preview:
+      intent === "VIDEO_CREATE"
+        ? "🎬 Sample Reel Frame"
+        : intent === "IMAGE_CREATE"
+        ? "🖼 Sample Image Preview"
+        : "📄 Demo Preview",
+  };
+}
+
+/* ===============================
+   MAIN AIX ENDPOINT
+================================ */
+app.post("/api/aix", (req, res) => {
+  const message = req.body.message || "";
+
+  const thought = think(message);
+  memory.lastIntent = thought.intent;
+
+  if (thought.needsClarification) {
+    return res.json({
+      mode: "CLARIFY",
+      reply:
+        "Good evening बॉस 👋\n" +
+        "मी ऐकतोय. योग्य output देण्यासाठी थोडी माहिती हवी आहे.",
+      questions: [
+        "प्रॉडक्ट / विषय काय आहे?",
+        "Audience कोण आहे?",
+      ],
+      status: "WAITING_FOR_INPUT",
+    });
   }
 
-  if (message.toLowerCase() === "हो") {
-    const filePath = path.join(projectDir, "result.txt");
-    fs.writeFileSync(
-      filePath,
-      "AIX EXECUTION SUCCESSFUL\nVideo generation simulated."
-    );
+  // Demo stage
+  if (!memory.awaitingApproval) {
+    memory.awaitingApproval = true;
+    return res.json({
+      mode: "DEMO",
+      reply:
+        "बॉस, हा output असा दिसेल.\n" +
+        "जर ठीक वाटत असेल तर 'हो' असा रिप्लाय द्या.",
+      visual: {
+        type:
+          memory.lastIntent === "VIDEO_CREATE"
+            ? "video"
+            : memory.lastIntent === "IMAGE_CREATE"
+            ? "image"
+            : "text",
+        preview: "Demo Preview Area",
+      },
+      nextAction: "AWAIT_APPROVAL",
+    });
+  }
 
-    lastStatus = {
-      mode: "DONE",
-      message: "काम पूर्ण झालं बॉस. Output तयार आहे.",
-      output: `/projects/${projectName}/result.txt`
-    };
+  // Execution stage
+  if (message.toLowerCase().includes("हो")) {
+    memory.awaitingApproval = false;
 
-    return res.json({ reply: lastStatus.message });
+    const result = execute(memory.lastIntent);
+
+    return res.json({
+      mode: "EXECUTED",
+      reply:
+        "काम पूर्ण झालं आहे बॉस ✅\n" +
+        "खाली proof आणि preview दिलं आहे.",
+      result,
+      status: "COMPLETED",
+    });
   }
 
   return res.json({
-    reply: "बॉस, मी समजून घेतोय. कृपया स्पष्ट सांगा."
+    mode: "CHAT",
+    reply:
+      "बॉस, मी ऐकतोय.\n" +
+      "माहिती, सल्ला की रियल काम — काय हवं आहे?",
   });
 });
 
-// -------- STATUS ----------
-app.get("/api/status", (req, res) => {
-  res.json(lastStatus);
+/* ===============================
+   STATIC OUTPUT
+================================ */
+app.use("/output", express.static(path.join(process.cwd(), "output")));
+
+app.get("/", (req, res) => {
+  res.send("AIX SMART CORE IS LIVE");
 });
 
-// -------- STATIC OUTPUT ----------
-app.use(
-  "/projects",
-  express.static(path.join(ROOT, "backend/projects"))
-);
-
-// -------- START ----------
-const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("AIX Backend running on port", PORT);
+  console.log("AIX Smart Server running on port", PORT);
 });
