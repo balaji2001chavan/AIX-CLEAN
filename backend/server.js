@@ -9,38 +9,18 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 const ROOT = process.cwd();
-const MEMORY = path.join(ROOT, "aix-memory");
 const OUTPUT = path.join(ROOT, "aix-output");
+const TASKS = path.join(ROOT, "aix-tasks");
 
-if (!fs.existsSync(MEMORY)) fs.mkdirSync(MEMORY);
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
+if (!fs.existsSync(TASKS)) fs.mkdirSync(TASKS);
 
-/* ======================
-   HELPERS
-====================== */
-function topicFrom(msg){
-  const m = msg.toLowerCase();
-  if (m.includes("reel") || m.includes("video")) return "instagram-reel";
-  if (m.includes("business") || m.includes("plan")) return "business";
-  if (m.includes("error") || m.includes("problem")) return "diagnose";
-  return "general";
-}
-
-function saveChat(topic, role, text){
-  const dir = path.join(MEMORY, topic);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
-  const file = path.join(dir, "chat.json");
-  const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
-  data.push({ role, text, time: new Date().toISOString() });
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-
-/* ======================
-   STATUS
-====================== */
-app.get("/api/status", (req,res)=>{
+/* =========================
+   SYSTEM STATUS
+========================= */
+app.get("/api/status", (req, res) => {
   res.json({
-    mode: "AUTO-HYBRID",
+    mode: "ACTION-READY",
     aiAvailable: true,
     pendingAction: "NO",
     lastError: null,
@@ -48,86 +28,55 @@ app.get("/api/status", (req,res)=>{
   });
 });
 
-/* ======================
-   AIX CORE
-====================== */
-app.post("/api/aix",(req,res)=>{
-  const msg = req.body?.message || "";
-  const topic = topicFrom(msg);
-
-  saveChat(topic,"user",msg);
-
-  let reply = "";
-
-  if (!msg.trim()) {
-    reply = "बॉस, काहीतरी सांगा 🙂";
-  }
-  else if (topic === "instagram-reel") {
-    reply =
-`🎬 बॉस, Instagram Reel विषय ओळखला.
-मी हा विषय वेगळा सेव्ह करतो.
-
-पुढे हवं:
-1️⃣ Product
-2️⃣ Audience
-3️⃣ Goal (sales / branding)
-
-सांगा, मग मी exact script + steps देतो.`;
-  }
-  else if (topic === "diagnose") {
-    reply =
-`🛠️ Diagnose mode ON बॉस.
-
-मी हे करू शकतो:
-• Problem explain
-• Root cause
-• Exact fix
-• Ready code
-
-Error message / screenshot पाठवा.`;
-  }
-  else if (topic === "business") {
-    reply =
-`💼 Business planning चालू आहे बॉस.
-
-मी देऊ शकतो:
-• Validation
-• Strategy
-• Revenue ideas
-• Risks
-
-Business type सांगा.`;
-  }
-  else {
-    reply =
-`नमस्कार बॉस 👋  
-मी AIX आहे — smart, practical assistant.
-
-तुम्ही बोलू शकता:
-• Business
-• Content
-• System problems
-• Planning
-
-काय करू बॉस?`;
+/* =========================
+   EXECUTE TASK (SIMULATED REAL WORK)
+========================= */
+app.post("/api/execute", (req, res) => {
+  const { task } = req.body;
+  if (!task) {
+    return res.json({ success: false, message: "Task दिला नाही बॉस." });
   }
 
-  saveChat(topic,"aix",reply);
+  const taskId = "task-" + Date.now();
+  const taskFile = path.join(TASKS, `${taskId}.json`);
+  const proofFile = path.join(OUTPUT, `${taskId}-proof.json`);
+
+  // save task
+  fs.writeFileSync(taskFile, JSON.stringify({
+    task,
+    status: "RUNNING",
+    startedAt: new Date().toISOString()
+  }, null, 2));
+
+  // simulate execution
+  const proof = {
+    task,
+    result: "SIMULATED EXECUTION COMPLETED",
+    note: "AI ने real-world execution simulate केलं आहे. Human approval required.",
+    nextSteps: [
+      "Generated code / steps वापरा",
+      "Manually apply करा",
+      "परत AIX ला verify साठी सांगा"
+    ],
+    completedAt: new Date().toISOString()
+  };
+
+  fs.writeFileSync(proofFile, JSON.stringify(proof, null, 2));
 
   res.json({
-    success:true,
-    topic,
-    reply
+    success: true,
+    message: "काम execute झालं आहे बॉस (simulation).",
+    proof: `/aix-output/${taskId}-proof.json`
   });
 });
 
-/* ======================
-   TOPICS LIST
-====================== */
-app.get("/api/topics",(req,res)=>{
-  res.json({ topics: fs.readdirSync(MEMORY) });
+/* =========================
+   ROOT
+========================= */
+app.get("/", (_, res) => {
+  res.send("AIX ACTION ENGINE LIVE");
 });
 
-app.get("/",(_,res)=>res.send("AIX FINAL CORE LIVE"));
-
-app.listen(PORT,()=>console.log("✅ AIX FINAL running",PORT));
+app.listen(PORT, () => {
+  console.log("🚀 AIX ACTION ENGINE running on", PORT);
+});
