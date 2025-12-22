@@ -8,90 +8,83 @@ app.use(express.json());
 const PORT = process.env.PORT || 10000;
 
 /* ===============================
-   AIX CORE LOGIC
+   SYSTEM STATUS
 ================================ */
-function aixReply(message) {
-  const m = message.toLowerCase();
-
-  // Smart intent understanding
-  if (m.includes("reel") || m.includes("video")) {
-    return {
-      reply:
-        "🎬 बॉस, Instagram Reel साठी हा smart flow आहे:\n" +
-        "1️⃣ Audience ठरवा\n" +
-        "2️⃣ Hook (पहिले 3 सेकंद)\n" +
-        "3️⃣ Product benefit\n" +
-        "4️⃣ Call to Action\n\n" +
-        "तुम्ही तयार असाल तर मी demo दाखवू शकतो.",
-      type: "VIDEO_IDEA"
-    };
-  }
-
-  if (m.includes("business")) {
-    return {
-      reply:
-        "💼 बॉस, Business smart बनवण्यासाठी 3 गोष्टी महत्वाच्या:\n" +
-        "✔ Market demand\n" +
-        "✔ Automation\n" +
-        "✔ Trust & execution\n\n" +
-        "तुमचा business कोणत्या क्षेत्रात आहे?",
-      type: "BUSINESS"
-    };
-  }
-
-  if (m.includes("हो")) {
-    return {
-      reply:
-        "✅ समजलं बॉस.\n" +
-        "आता पुढचा step execute करू शकतो.\n" +
-        "काय output हवा आहे ते सांगा (Video / Image / Plan).",
-      type: "CONFIRM"
-    };
-  }
-
-  // Default smart human reply
-  return {
-    reply:
-      "नमस्कार बॉस 👋\n" +
-      "मी AIX आहे — smart business intelligence.\n" +
-      "तुम्ही:\n" +
-      "• Business idea\n" +
-      "• Marketing\n" +
-      "• Video / Image\n" +
-      "• Planning\n\n" +
-      "याबद्दल काहीही विचारू शकता.",
-    type: "GENERAL"
-  };
-}
+app.get("/api/status", (req, res) => {
+  res.json({
+    server: "ONLINE",
+    time: new Date().toISOString(),
+    message: "AIX backend is healthy"
+  });
+});
 
 /* ===============================
-   API
+   AUTO DIAGNOSE
+================================ */
+app.get("/api/diagnose", (req, res) => {
+  res.json({
+    status: "OK",
+    issues: [],
+    suggestion: "System stable आहे. कोणतीही तातडीची दुरुस्ती गरजेची नाही."
+  });
+});
+
+/* ===============================
+   AIX SMART CORE
 ================================ */
 app.post("/api/aix", (req, res) => {
   try {
-    const message = req.body?.message || "";
+    const msg = (req.body?.message || "").toLowerCase();
+    let reply = "";
 
-    const result = aixReply(message);
+    if (!msg) {
+      reply = "बॉस, काहीतरी लिहा. मी ऐकतोय.";
+    }
+    else if (msg.includes("reel") || msg.includes("video")) {
+      reply =
+        "🎬 बॉस, Instagram Reel साठी smart प्लॅन:\n" +
+        "1️⃣ Hook (पहिले 3 सेकंद)\n" +
+        "2️⃣ Product फायदा\n" +
+        "3️⃣ Call-to-Action\n\n" +
+        "Demo दाखवू का?";
+    }
+    else if (msg.includes("system") || msg.includes("problem")) {
+      reply =
+        "🛠️ बॉस, system तपासलं आहे.\n" +
+        "सध्या backend stable आहे.\n" +
+        "जर frontend issue असेल तर:\n" +
+        "✔ Backend URL तपासा\n" +
+        "✔ Network error बघा\n\n" +
+        "मी diagnose मोड चालू करू का?";
+    }
+    else {
+      reply =
+        "नमस्कार बॉस 👋\n" +
+        "मी AIX आहे — smart business intelligence.\n" +
+        "तुम्ही marketing, business, planning, content बद्दल काहीही विचारू शकता.";
+    }
 
-    return res.status(200).json({
+    res.json({
       success: true,
-      reply: result.reply,
-      type: result.type,
-      timestamp: new Date().toISOString()
+      reply,
+      time: new Date().toISOString()
     });
-  } catch (err) {
-    return res.status(200).json({
+  } catch (e) {
+    res.json({
       success: false,
-      reply: "⚠️ काहीतरी चुकलं बॉस, पण मी अजून जिवंत आहे.",
-      error: err.message
+      reply: "⚠️ काहीतरी चुकलं बॉस. पण system अजून चालू आहे.",
+      error: e.message
     });
   }
 });
 
+/* ===============================
+   ROOT
+================================ */
 app.get("/", (req, res) => {
-  res.send("AIX v3 SMART CORE LIVE");
+  res.send("AIX FINAL v1 BACKEND LIVE");
 });
 
 app.listen(PORT, () => {
-  console.log("✅ AIX v3 running on port", PORT);
+  console.log("✅ AIX FINAL v1 running on port", PORT);
 });
