@@ -9,21 +9,36 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 const ROOT = process.cwd();
-const MEMORY = path.join(ROOT, "aix-memory");
 const OUTPUT = path.join(ROOT, "aix-output");
+const MEMORY = path.join(ROOT, "aix-memory");
 
-if (!fs.existsSync(MEMORY)) fs.mkdirSync(MEMORY);
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
+if (!fs.existsSync(MEMORY)) fs.mkdirSync(MEMORY);
 
-// serve outputs publicly
 app.use("/aix-output", express.static(OUTPUT));
 
-/* ---------- UTILS ---------- */
-function detectTopic(msg) {
-  const m = msg.toLowerCase();
-  if (m.includes("reel") || m.includes("video")) return "instagram-reel";
-  if (m.includes("business")) return "business";
-  if (m.includes("system")) return "system";
+/* ================= SESSION MEMORY ================= */
+
+const SESSIONS = {};
+
+function getSession(userId = "default") {
+  if (!SESSIONS[userId]) {
+    SESSIONS[userId] = {
+      activeTopic: null,
+      stage: null,
+      history: []
+    };
+  }
+  return SESSIONS[userId];
+}
+
+/* ================= HELPERS ================= */
+
+function detectTopic(text) {
+  const t = text.toLowerCase();
+  if (t.includes("reel") || t.includes("instagram")) return "instagram-reel";
+  if (t.includes("business")) return "business";
+  if (t.includes("github")) return "github";
   return "general";
 }
 
@@ -35,88 +50,90 @@ function topicDir(topic) {
 
 function saveChat(topic, role, text) {
   const file = path.join(topicDir(topic), "chat.json");
-  const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
-  arr.push({ role, text, time: new Date().toISOString() });
-  fs.writeFileSync(file, JSON.stringify(arr, null, 2));
-}
-
-function saveProof(topic, data) {
-  const file = path.join(topicDir(topic), "proof.json");
+  const data = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+  data.push({ role, text, time: new Date().toISOString() });
   fs.writeFileSync(file, JSON.stringify(data, null, 2));
-  return file;
 }
 
-/* ---------- STATUS ---------- */
+function createProof(topic, content) {
+  const name = `${topic}-${Date.now()}.txt`;
+  const out = path.join(OUTPUT, name);
+  fs.writeFileSync(out, content);
+
+  fs.writeFileSync(
+    path.join(topicDir(topic), "proof.json"),
+    JSON.stringify({
+      topic,
+      output: `/aix-output/${name}`,
+      time: new Date().toISOString()
+    }, null, 2)
+  );
+
+  return `/aix-output/${name}`;
+}
+
+/* ================= API ================= */
+
 app.get("/api/status", (_, res) => {
-  res.json({
-    server: "ONLINE",
-    time: new Date().toISOString()
-  });
+  res.json({ status: "ONLINE" });
 });
 
-/* ---------- CORE ---------- */
 app.post("/api/aix", (req, res) => {
-  const message = req.body?.message || "";
-  const topic = detectTopic(message);
-
-  saveChat(topic, "user", message);
+  const message = (req.body.message || "").trim();
+  const session = getSession("default");
 
   let reply = "";
-  let previewUrl = null;
+  let preview = null;
 
-  if (message.toLowerCase() === "हो") {
-    // REAL FILE CREATION (proof)
-    const filename = `${topic}-${Date.now()}.txt`;
-    const outPath = path.join(OUTPUT, filename);
+  // store history
+  session.history.push({ role: "user", message });
 
-    fs.writeFileSync(
-      outPath,
-      `AIX executed real task for topic: ${topic}`
-    );
+  /* -------- YES / NO HANDLING -------- */
+  if (message === "हो" || message === "yes") {
+    if (session.stage === "confirm_execution") {
+      preview = createProof(
+        session.activeTopic,
+        `AIX executed real task for topic: ${session.activeTopic}`
+      );
 
-    previewUrl = `/aix-output/${filename}`;
+      reply =
+        "✅ काम execute झालं आहे बॉस.\n" +
+        "खाली output पहा, download किंवा share करा.";
 
-    saveProof(topic, {
-      status: "EXECUTED",
-      output: previewUrl,
-      time: new Date().toISOString()
-    });
-
-    reply =
-      "✅ काम पूर्ण झालं बॉस.\n" +
-      "खाली output पाहा, डाउनलोड करा किंवा शेअर करा.";
+      session.stage = "done";
+    } else {
+      reply = "🤔 बॉस, कशाला 'हो' म्हणताय? आधी विषय सांगा.";
+    }
   }
-  else if (topic === "instagram-reel") {
-    reply =
-      "🎬 Instagram Reel विषय ओळखला आहे.\n" +
-      "मी:\n" +
-      "• Script\n" +
-      "• Scene plan\n" +
-      "• Caption\n\n" +
-      "Demo तयार करू का? (हो / नाही)";
-  }
+
+  /* -------- NEW TOPIC -------- */
   else {
+    const topic = detectTopic(message);
+    session.activeTopic = topic;
+    session.stage = "confirm_execution";
+
     reply =
-      "नमस्कार बॉस 👋\n" +
-      "मी AIX आहे — smart intelligence.\n" +
-      "तुम्ही video, business, system बद्दल बोलू शकता.";
+      `📌 विषय ओळखला: ${topic}\n\n` +
+      "मी या विषयावर रियल output तयार करू शकतो.\n" +
+      "Demo / execution करू का? (हो / नाही)";
   }
 
-  saveChat(topic, "aix", reply);
+  saveChat(session.activeTopic || "general", "user", message);
+  saveChat(session.activeTopic || "general", "aix", reply);
 
   res.json({
-    success: true,
-    topic,
     reply,
-    previewUrl
+    topic: session.activeTopic,
+    preview
   });
 });
 
-/* ---------- ROOT ---------- */
+/* ================= ROOT ================= */
+
 app.get("/", (_, res) => {
-  res.send("AIX FINAL v3 BACKEND LIVE");
+  res.send("AIX CORE FINAL – LIVE");
 });
 
 app.listen(PORT, () => {
-  console.log("✅ AIX FINAL v3 running on port", PORT);
+  console.log("AIX running on", PORT);
 });
