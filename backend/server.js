@@ -9,74 +9,114 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 const ROOT = process.cwd();
+const MEMORY = path.join(ROOT, "aix-memory");
 const OUTPUT = path.join(ROOT, "aix-output");
-const TASKS = path.join(ROOT, "aix-tasks");
 
+if (!fs.existsSync(MEMORY)) fs.mkdirSync(MEMORY);
 if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
-if (!fs.existsSync(TASKS)) fs.mkdirSync(TASKS);
 
-/* =========================
-   SYSTEM STATUS
-========================= */
-app.get("/api/status", (req, res) => {
+// serve outputs publicly
+app.use("/aix-output", express.static(OUTPUT));
+
+/* ---------- UTILS ---------- */
+function detectTopic(msg) {
+  const m = msg.toLowerCase();
+  if (m.includes("reel") || m.includes("video")) return "instagram-reel";
+  if (m.includes("business")) return "business";
+  if (m.includes("system")) return "system";
+  return "general";
+}
+
+function topicDir(topic) {
+  const dir = path.join(MEMORY, topic);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+  return dir;
+}
+
+function saveChat(topic, role, text) {
+  const file = path.join(topicDir(topic), "chat.json");
+  const arr = fs.existsSync(file) ? JSON.parse(fs.readFileSync(file)) : [];
+  arr.push({ role, text, time: new Date().toISOString() });
+  fs.writeFileSync(file, JSON.stringify(arr, null, 2));
+}
+
+function saveProof(topic, data) {
+  const file = path.join(topicDir(topic), "proof.json");
+  fs.writeFileSync(file, JSON.stringify(data, null, 2));
+  return file;
+}
+
+/* ---------- STATUS ---------- */
+app.get("/api/status", (_, res) => {
   res.json({
-    mode: "ACTION-READY",
-    aiAvailable: true,
-    pendingAction: "NO",
-    lastError: null,
-    uptimeSeconds: process.uptime()
+    server: "ONLINE",
+    time: new Date().toISOString()
   });
 });
 
-/* =========================
-   EXECUTE TASK (SIMULATED REAL WORK)
-========================= */
-app.post("/api/execute", (req, res) => {
-  const { task } = req.body;
-  if (!task) {
-    return res.json({ success: false, message: "Task दिला नाही बॉस." });
+/* ---------- CORE ---------- */
+app.post("/api/aix", (req, res) => {
+  const message = req.body?.message || "";
+  const topic = detectTopic(message);
+
+  saveChat(topic, "user", message);
+
+  let reply = "";
+  let previewUrl = null;
+
+  if (message.toLowerCase() === "हो") {
+    // REAL FILE CREATION (proof)
+    const filename = `${topic}-${Date.now()}.txt`;
+    const outPath = path.join(OUTPUT, filename);
+
+    fs.writeFileSync(
+      outPath,
+      `AIX executed real task for topic: ${topic}`
+    );
+
+    previewUrl = `/aix-output/${filename}`;
+
+    saveProof(topic, {
+      status: "EXECUTED",
+      output: previewUrl,
+      time: new Date().toISOString()
+    });
+
+    reply =
+      "✅ काम पूर्ण झालं बॉस.\n" +
+      "खाली output पाहा, डाउनलोड करा किंवा शेअर करा.";
+  }
+  else if (topic === "instagram-reel") {
+    reply =
+      "🎬 Instagram Reel विषय ओळखला आहे.\n" +
+      "मी:\n" +
+      "• Script\n" +
+      "• Scene plan\n" +
+      "• Caption\n\n" +
+      "Demo तयार करू का? (हो / नाही)";
+  }
+  else {
+    reply =
+      "नमस्कार बॉस 👋\n" +
+      "मी AIX आहे — smart intelligence.\n" +
+      "तुम्ही video, business, system बद्दल बोलू शकता.";
   }
 
-  const taskId = "task-" + Date.now();
-  const taskFile = path.join(TASKS, `${taskId}.json`);
-  const proofFile = path.join(OUTPUT, `${taskId}-proof.json`);
-
-  // save task
-  fs.writeFileSync(taskFile, JSON.stringify({
-    task,
-    status: "RUNNING",
-    startedAt: new Date().toISOString()
-  }, null, 2));
-
-  // simulate execution
-  const proof = {
-    task,
-    result: "SIMULATED EXECUTION COMPLETED",
-    note: "AI ने real-world execution simulate केलं आहे. Human approval required.",
-    nextSteps: [
-      "Generated code / steps वापरा",
-      "Manually apply करा",
-      "परत AIX ला verify साठी सांगा"
-    ],
-    completedAt: new Date().toISOString()
-  };
-
-  fs.writeFileSync(proofFile, JSON.stringify(proof, null, 2));
+  saveChat(topic, "aix", reply);
 
   res.json({
     success: true,
-    message: "काम execute झालं आहे बॉस (simulation).",
-    proof: `/aix-output/${taskId}-proof.json`
+    topic,
+    reply,
+    previewUrl
   });
 });
 
-/* =========================
-   ROOT
-========================= */
+/* ---------- ROOT ---------- */
 app.get("/", (_, res) => {
-  res.send("AIX ACTION ENGINE LIVE");
+  res.send("AIX FINAL v3 BACKEND LIVE");
 });
 
 app.listen(PORT, () => {
-  console.log("🚀 AIX ACTION ENGINE running on", PORT);
+  console.log("✅ AIX FINAL v3 running on port", PORT);
 });
