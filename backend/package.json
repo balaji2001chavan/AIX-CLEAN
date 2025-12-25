@@ -1,15 +1,18 @@
 {
-  "name": "aix-studio",
+  "name": "aix-backend",
   "version": "1.0.0",
+  "description": "AIX Brain + Executor Backend",
   "type": "module",
+  "main": "server.js",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node server.js"
   },
-  
-{
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "dependencies": {
     "express": "^4.19.2",
     "cors": "^2.8.5",
-    "openai": "^4.0.0"
+    "openai": "^4.28.0"
   }
 }
