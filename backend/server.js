@@ -10,13 +10,12 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 10000;
 const ROOT = process.cwd();
-const OUTPUT = path.join(ROOT, "aix-output");
-if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
+const OUTPUT_DIR = path.join(ROOT, "aix-output");
+if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
-app.use("/aix-output", express.static(OUTPUT));
+app.use("/aix-output", express.static(OUTPUT_DIR));
 
-/* ================= BRAIN ================= */
-
+/* ============ BRAIN ============ */
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
@@ -25,73 +24,83 @@ const SYSTEM_PROMPT = `
 You are AIX.
 You speak like ChatGPT: clear, calm, intelligent.
 You understand Marathi, Hindi, English.
-You explain first, then ask before executing.
-If execution is needed, respond with JSON like:
+First explain.
+If real work is needed, respond ONLY in JSON like:
 {
-  "action": "create_file",
-  "content": "text to write"
+  "action": "create_demo_file",
+  "content": "text"
 }
 `;
 
-/* ================= SESSION ================= */
-
-const SESSION = {
+/* ============ MEMORY ============ */
+const session = {
   messages: []
 };
 
-/* ================= EXECUTOR ================= */
+/* ============ JOB STORE ============ */
+const JOBS = {};
 
-function executePlan(plan) {
-  if (plan.action === "create_file") {
-    const file = `output-${Date.now()}.txt`;
-    fs.writeFileSync(
-      path.join(OUTPUT, file),
-      plan.content || "AIX executed task"
-    );
-    return `/aix-output/${file}`;
+/* ============ EXECUTOR ============ */
+function execute(plan) {
+  if (plan.action === "create_demo_file") {
+    const file = `demo-${Date.now()}.txt`;
+    const filePath = path.join(OUTPUT_DIR, file);
+    fs.writeFileSync(filePath, plan.content || "AIX demo output");
+    return {
+      type: "file",
+      url: `/aix-output/${file}`
+    };
   }
   return null;
 }
 
-/* ================= API ================= */
-
+/* ============ API ============ */
 app.post("/api/aix", async (req, res) => {
-  const userMsg = req.body.message;
+  const { message } = req.body;
 
-  SESSION.messages.push({ role: "user", content: userMsg });
+  session.messages.push({ role: "user", content: message });
 
   const completion = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
-      ...SESSION.messages
+      ...session.messages
     ],
     temperature: 0.6
   });
 
   const reply = completion.choices[0].message.content;
-  SESSION.messages.push({ role: "assistant", content: reply });
+  session.messages.push({ role: "assistant", content: reply });
 
-  let preview = null;
+  let output = null;
 
-  // If AI returned JSON plan → execute
   try {
     const plan = JSON.parse(reply);
-    preview = executePlan(plan);
+    const jobId = "job_" + Date.now();
+    JOBS[jobId] = { status: "RUNNING" };
+
+    const result = execute(plan);
+    JOBS[jobId] = { status: "DONE", result };
+
+    output = { jobId, ...result };
   } catch (e) {
-    // normal chat reply
+    // normal chat
   }
 
   res.json({
     reply,
-    preview
+    output
   });
 });
 
+app.get("/api/jobs", (_, res) => {
+  res.json(JOBS);
+});
+
 app.get("/", (_, res) => {
-  res.send("AIX FINAL – Brain + Executor LIVE");
+  res.send("AIX LIVE STUDIO BACKEND RUNNING");
 });
 
 app.listen(PORT, () => {
-  console.log("AIX running on port", PORT);
+  console.log("AIX backend live on", PORT);
 });
