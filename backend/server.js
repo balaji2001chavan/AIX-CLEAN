@@ -1,104 +1,87 @@
 import express from "express";
 import cors from "cors";
-import fs from "fs";
-import path from "path";
-
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const OUTPUT_DIR = path.join(process.cwd(), "output");
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
-const response = await fetch("https://api.example.com/data");
-const data = await response.json();
-// ================= STATUS =================
-app.get("/api/status", (req, res) => {
-  res.json({
-    mode: "AIX-LIVE",
-    aiAvailable: true,
-    time: new Date().toISOString()
-  });
+/* ===============================
+   HEALTH CHECK
+================================ */
+app.get("/", (req, res) => {
+  res.json({ status: "AIX LIVE", time: new Date() });
 });
 
-// ================= CHAT =================
-app.post("/api/chat", async (req, res) => {
-  const { message } = req.body;
+/* ===============================
+   LIVE NEWS (FREE PUBLIC SOURCE)
+   Using Hacker News API (NO KEY)
+================================ */
+app.get("/api/live/news", async (req, res) => {
+  try {
+    const response = await fetch(
+      "https://hacker-news.firebaseio.com/v0/topstories.json"
+    );
 
-  const reply = `
-नमस्कार बॉस 👋  
-तुम्ही म्हणालात: "${message}"
+    const ids = await response.json();
+    const topIds = ids.slice(0, 5);
 
-मी AIX आहे —  
-मी माहिती देऊ शकतो, live data आणू शकतो,  
-आणि output तयार करून दाखवू शकतो.
+    const stories = await Promise.all(
+      topIds.map(async (id) => {
+        const r = await fetch(
+          `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+        );
+        return r.json();
+      })
+    );
 
-पुढे काय करू?
-• Live News  
-• Tech Updates  
-• Product Info  
-• Image / Video demo
-`;
-
-  res.json({ reply });
+    res.json({
+      success: true,
+      source: "HackerNews (Live)",
+      data: stories.map((s) => ({
+        title: s.title,
+        url: s.url,
+        by: s.by,
+      })),
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Live news fetch failed",
+      error: error.message,
+    });
+  }
 });
 
-// ================= LIVE NEWS =================
-app.get("/api/news", async (req, res) => {
-  res.json({
-    source: "Live News (demo)",
-    headlines: [
-      "भारतामध्ये AI adoption वेगाने वाढत आहे",
-      "2025 मध्ये Electric Vehicles मोठी झेप घेणार",
-      "AI + Automation मुळे नवीन jobs तयार होत आहेत"
-    ]
-  });
+/* ===============================
+   WEATHER (FREE, NO API KEY)
+================================ */
+app.get("/api/live/weather", async (req, res) => {
+  try {
+    const city = req.query.city || "Pune";
+    const url = `https://wttr.in/${city}?format=j1`;
+
+    const response = await fetch(url);
+    const data = await response.json();
+
+    res.json({
+      success: true,
+      city,
+      temperature: data.current_condition[0].temp_C,
+      weather: data.current_condition[0].weatherDesc[0].value,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Weather fetch failed",
+      error: error.message,
+    });
+  }
 });
 
-// ================= TECHNOLOGY =================
-app.get("/api/tech", async (req, res) => {
-  res.json({
-    tech: [
-      "AI Agents",
-      "Text-to-Video",
-      "Robotics",
-      "Smart Apps",
-      "Autonomous Systems"
-    ]
-  });
-});
-
-// ================= WEATHER =================
-app.get("/api/weather", (req, res) => {
-  res.json({
-    location: "India",
-    temperature: "32°C",
-    condition: "Sunny",
-    time: new Date().toLocaleString()
-  });
-});
-
-// ================= MEDIA (DEMO) =================
-app.post("/api/media", (req, res) => {
-  const filename = `aix_output_${Date.now()}.txt`;
-  const filePath = path.join(OUTPUT_DIR, filename);
-
-  fs.writeFileSync(
-    filePath,
-    "AIX generated media demo output\nTime: " + new Date().toISOString()
-  );
-
-  res.json({
-    success: true,
-    preview: `/output/${filename}`
-  });
-});
-
-// ================= OUTPUT =================
-app.use("/output", express.static(OUTPUT_DIR));
-
-// ================= START =================
+/* ===============================
+   START SERVER
+================================ */
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log("🔥 AIX LIVE on port", PORT);
+  console.log("✅ AIX Backend running on port", PORT);
 });
