@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import fs from "fs";
 import path from "path";
-import fetch from "node-fetch";
+
 
 const app = express();
 app.use(cors());
@@ -10,7 +10,8 @@ app.use(express.json());
 
 const OUTPUT_DIR = path.join(process.cwd(), "output");
 if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
-
+const response = await fetch("https://api.example.com/data");
+const data = await response.json();
 // ================= STATUS =================
 app.get("/api/status", (req, res) => {
   res.json({
