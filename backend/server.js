@@ -7,57 +7,78 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const OUTPUT_DIR = path.join(process.cwd(), "output");
-if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
+const ROOT = process.cwd();
+const OUTPUT = path.join(ROOT, "output");
+if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
 
-// Health
+// ---------- STATUS ----------
 app.get("/api/status", (req, res) => {
   res.json({
     mode: "AIX-BASE",
-    aiAvailable: true,
+    ai: "READY",
     time: new Date().toISOString()
   });
 });
 
-// Main AIX command
-app.post("/api/aix", async (req, res) => {
-  const { message } = req.body;
-  const lower = (message || "").toLowerCase();
+// ---------- AIX CORE ----------
+app.post("/api/aix", (req, res) => {
+  const message = (req.body.message || "").toLowerCase();
 
-  // ---- UI command example ----
-  if (lower.includes("galaxy")) {
+  // UI command
+  if (message.includes("galaxy")) {
     return res.json({
-      action: "UI_CHANGE",
-      effect: "GALAXY_MODE",
-      message: "Galaxy mode apply केला आहे"
+      type: "UI",
+      action: "GALAXY",
+      explain:
+        "Screen galaxy mode मध्ये बदलेल. Visual effect only.",
+      proof: "UI class changed"
     });
   }
 
-  // ---- File creation example ----
-  if (lower.includes("file")) {
-    const filename = `aix-file-${Date.now()}.txt`;
-    const filepath = path.join(OUTPUT_DIR, filename);
-    fs.writeFileSync(filepath, "AIX generated this file.\n");
+  // File command
+  if (message.includes("file")) {
+    const name = `aix_${Date.now()}.txt`;
+    const filePath = path.join(OUTPUT, name);
+    fs.writeFileSync(
+      filePath,
+      "AIX generated this file.\nProof: " +
+        new Date().toISOString()
+    );
 
     return res.json({
-      action: "FILE_CREATED",
-      file: filename,
-      download: `/output/${filename}`,
-      message: "File तयार झाली आहे"
+      type: "FILE",
+      explain:
+        "File तयार केली आहे. तुम्ही download करू शकता.",
+      download: `/output/${name}`,
+      proof: name
+    });
+  }
+
+  // GitHub suggestion (REALISTIC)
+  if (message.includes("github")) {
+    return res.json({
+      type: "GITHUB",
+      explain:
+        "Direct commit security मुळे शक्य नाही. पण मी exact commands देतो.",
+      commands: [
+        "git status",
+        "git add .",
+        "git commit -m 'AIX update'",
+        "git push origin main"
+      ]
     });
   }
 
   return res.json({
-    action: "INFO",
-    message:
-      "आदेश समजला. पुढे image/video/marketplace modules जोडता येतील."
+    type: "INFO",
+    explain:
+      "आदेश समजला. पुढे image / video / marketplace modules जोडता येतील."
   });
 });
 
-// Serve outputs
-app.use("/output", express.static(OUTPUT_DIR));
+app.use("/output", express.static(OUTPUT));
 
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () =>
-  console.log("AIX Backend running on", PORT)
+  console.log("AIX running on port", PORT)
 );
