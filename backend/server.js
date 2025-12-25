@@ -7,78 +7,43 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const ROOT = process.cwd();
-const OUTPUT = path.join(ROOT, "output");
-if (!fs.existsSync(OUTPUT)) fs.mkdirSync(OUTPUT);
+const OUTPUT_DIR = path.join(process.cwd(), "output");
+if (!fs.existsSync(OUTPUT_DIR)) fs.mkdirSync(OUTPUT_DIR);
 
-// ---------- STATUS ----------
+app.use("/output", express.static(OUTPUT_DIR));
+
+// Health
 app.get("/api/status", (req, res) => {
-  res.json({
-    mode: "AIX-BASE",
-    ai: "READY",
-    time: new Date().toISOString()
-  });
+  res.json({ ok: true, time: new Date().toISOString() });
 });
 
-// ---------- AIX CORE ----------
+// Create demo output (simulate AIX work)
 app.post("/api/aix", (req, res) => {
-  const message = (req.body.message || "").toLowerCase();
+  const content = req.body.message || "AIX generated this file.";
+  const ts = Date.now();
+  const filename = `aix_${ts}.txt`;
+  const filePath = path.join(OUTPUT_DIR, filename);
 
-  // UI command
-  if (message.includes("galaxy")) {
-    return res.json({
-      type: "UI",
-      action: "GALAXY",
-      explain:
-        "Screen galaxy mode मध्ये बदलेल. Visual effect only.",
-      proof: "UI class changed"
-    });
-  }
+  fs.writeFileSync(filePath, content);
+  const meta = {
+    type: "text",
+    path: `/output/${filename}`,
+    createdAt: new Date().toISOString()
+  };
+  fs.writeFileSync(
+    path.join(OUTPUT_DIR, "latest.json"),
+    JSON.stringify(meta, null, 2)
+  );
 
-  // File command
-  if (message.includes("file")) {
-    const name = `aix_${Date.now()}.txt`;
-    const filePath = path.join(OUTPUT, name);
-    fs.writeFileSync(
-      filePath,
-      "AIX generated this file.\nProof: " +
-        new Date().toISOString()
-    );
-
-    return res.json({
-      type: "FILE",
-      explain:
-        "File तयार केली आहे. तुम्ही download करू शकता.",
-      download: `/output/${name}`,
-      proof: name
-    });
-  }
-
-  // GitHub suggestion (REALISTIC)
-  if (message.includes("github")) {
-    return res.json({
-      type: "GITHUB",
-      explain:
-        "Direct commit security मुळे शक्य नाही. पण मी exact commands देतो.",
-      commands: [
-        "git status",
-        "git add .",
-        "git commit -m 'AIX update'",
-        "git push origin main"
-      ]
-    });
-  }
-
-  return res.json({
-    type: "INFO",
-    explain:
-      "आदेश समजला. पुढे image / video / marketplace modules जोडता येतील."
-  });
+  res.json({ success: true, meta });
 });
 
-app.use("/output", express.static(OUTPUT));
+// Latest output metadata
+app.get("/api/latest", (req, res) => {
+  const metaPath = path.join(OUTPUT_DIR, "latest.json");
+  if (!fs.existsSync(metaPath)) return res.json({ empty: true });
+  res.json(JSON.parse(fs.readFileSync(metaPath, "utf-8")));
+});
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () =>
-  console.log("AIX running on port", PORT)
-);
+app.listen(PORT, () => console.log("AIX backend live on", PORT));
