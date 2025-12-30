@@ -38,7 +38,14 @@ app.use((req, res) => {
     path: req.originalUrl
   });
 });
-
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    ai: "AIX online",
+    db: "connected",
+    time: new Date().toISOString()
+  });
+});
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 AIX server running on port ${PORT}`);
 });
