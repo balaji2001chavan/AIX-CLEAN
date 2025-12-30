@@ -168,6 +168,66 @@ function aixReply(userText) {
 कृपया क्रमांक लिहा (1 / 2 / 3).`,
   "aix");
 }
+<script>
+let mode = "chat";
+
+function aixReply(userText) {
+  if (mode === "work") {
+    addMsg(
+`बॉस, हे REAL WORK MODE आहे 🔥
+
+काम: "${userText}"
+
+मी हे करू शकतो:
+✅ Usable content तयार
+✅ Step-by-step execution plan
+✅ Client-ready output
+
+सांग:
+1️⃣ Content बनव
+2️⃣ Plan बनव
+3️⃣ Checklist + Commands दे
+
+फक्त क्रमांक लिहा (1 / 2 / 3).`,
+    "aix");
+    return;
+  }
+
+  addMsg(
+`मी समजलो बॉस 👍
+
+तुमचा मुद्दा:
+"${userText}"
+
+पुढे काय करायचं?
+1️⃣ माहिती
+2️⃣ सल्ला / plan
+3️⃣ REAL WORK MODE
+
+क्रमांक लिहा (1 / 2 / 3).`,
+  "aix");
+}
+
+function preset(type) {
+  if (type === "create") {
+    mode = "work";
+    addMsg("REAL WORK MODE ON 🔥\nकाय बनवायचं आहे ते सांगा.", "aix");
+    return;
+  }
+  if (type === "plan") {
+    addMsg("कोणत्या विषयावर plan हवा आहे?", "aix");
+    return;
+  }
+  if (type === "earn") {
+    addMsg("तुमची skill / resources काय आहेत? मी earning plan देतो.", "aix");
+    return;
+  }
+  if (type === "improve") {
+    addMsg("AIX मध्ये काय सुधारायचं आहे? मी roadmap देतो.", "aix");
+    return;
+  }
+}
+</script>
 </script>
 
 </body>
