@@ -5,11 +5,10 @@
 <title>AIX – Global Intelligence</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-* { box-sizing: border-box; }
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: radial-gradient(circle at top, #0f2027, #203a43, #2c5364);
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: #fff;
   height: 100vh;
   display: flex;
@@ -17,27 +16,28 @@ body {
 }
 header {
   padding: 15px;
-  text-align: center;
   background: rgba(0,0,0,0.4);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-header h1 {
-  margin: 0;
-  font-size: 26px;
-}
-header p {
-  margin: 5px 0 0;
-  font-size: 14px;
-  opacity: 0.8;
-}
-#status {
   text-align: center;
-  font-size: 13px;
-  padding: 6px;
+}
+header h1 { margin: 0; }
+header p { margin: 5px 0 0; font-size: 14px; opacity: 0.8; }
+
+#actions {
+  display: flex;
+  justify-content: space-around;
+  padding: 10px;
+  background: rgba(0,0,0,0.5);
+}
+#actions button {
+  padding: 10px 14px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
   background: #00ffcc;
   color: #000;
-  font-weight: bold;
 }
+
 #chat {
   flex: 1;
   padding: 15px;
@@ -49,7 +49,6 @@ header p {
   padding: 10px 14px;
   border-radius: 12px;
   line-height: 1.5;
-  word-wrap: break-word;
 }
 .user {
   background: #00c6ff;
@@ -59,17 +58,17 @@ header p {
 .aix {
   background: rgba(255,255,255,0.15);
 }
+
 #inputBar {
   display: flex;
   padding: 10px;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.7);
 }
 #inputBar input {
   flex: 1;
   padding: 12px;
   border-radius: 8px;
   border: none;
-  outline: none;
   font-size: 16px;
 }
 #inputBar button {
@@ -77,11 +76,11 @@ header p {
   padding: 12px 18px;
   border-radius: 8px;
   border: none;
-  cursor: pointer;
   background: #00ffcc;
-  color: #000;
   font-weight: bold;
+  cursor: pointer;
 }
+
 footer {
   text-align: center;
   font-size: 12px;
@@ -98,39 +97,31 @@ footer {
   <p>Global Human-First Intelligence</p>
 </header>
 
-<div id="status">🟢 AIX LIVE – Ready to help</div>
+<div id="actions">
+  <button onclick="preset('create')">Create</button>
+  <button onclick="preset('plan')">Plan</button>
+  <button onclick="preset('earn')">Earn</button>
+  <button onclick="preset('improve')">Improve AIX</button>
+</div>
 
 <div id="chat">
   <div class="msg aix">
     नमस्कार बॉस 👋  
     मी AIX आहे.  
-    माहिती, सल्ला, planning किंवा real-world काम — काय हवं आहे?
+    बोला — माहिती, सल्ला की रियल काम?
   </div>
 </div>
 
 <div id="inputBar">
-  <input id="userInput" placeholder="इथे बोला किंवा लिहा..." />
+  <input id="userInput" placeholder="इथे बोला / लिहा..." />
   <button onclick="send()">Send</button>
 </div>
 
 <footer>
-  Built for the world • Powered by Human Intent
+  AIX works with you • Decisions before execution
 </footer>
 
 <script>
-function send() {
-  const input = document.getElementById("userInput");
-  const text = input.value.trim();
-  if (!text) return;
-
-  addMsg(text, "user");
-  input.value = "";
-
-  setTimeout(() => {
-    aixReply(text);
-  }, 600);
-}
-
 function addMsg(text, who) {
   const chat = document.getElementById("chat");
   const div = document.createElement("div");
@@ -140,21 +131,42 @@ function addMsg(text, who) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-function aixReply(userText) {
-  let reply =
-`बॉस, मी समजलो 👍
+function send() {
+  const input = document.getElementById("userInput");
+  const text = input.value.trim();
+  if (!text) return;
+  addMsg(text, "user");
+  input.value = "";
+  setTimeout(() => aixReply(text), 600);
+}
 
-तुम्ही म्हणताय:
+function preset(type) {
+  let msg = "";
+  if (type === "create")
+    msg = "बॉस, तुम्हाला काय बनवायचं आहे? (content / app / file / idea)";
+  if (type === "plan")
+    msg = "बॉस, कोणत्या विषयावर plan हवा आहे?";
+  if (type === "earn")
+    msg = "बॉस, पैसे कमवण्यासाठी तुमची skill / resources काय आहेत?";
+  if (type === "improve")
+    msg = "बॉस, AIX मध्ये काय सुधारायचं आहे?";
+  addMsg(msg, "aix");
+}
+
+function aixReply(userText) {
+  addMsg(
+`मी समजलो बॉस 👍
+
+तुमचा मुद्दा:
 "${userText}"
 
-पुढे जाण्याआधी मला 2 गोष्टी स्पष्ट हव्या आहेत:
-1) हे माहिती हवं आहे का?
-2) सल्ला / planning?
-3) real-world काम (manual + step-by-step)?
+पुढचा मार्ग असा आहे:
+1️⃣ मी माहिती देऊ  
+2️⃣ मी plan देऊ  
+3️⃣ मी real-world steps देऊ  
 
-कृपया क्रमांक लिहा (1 / 2 / 3).`;
-
-  addMsg(reply, "aix");
+कृपया क्रमांक लिहा (1 / 2 / 3).`,
+  "aix");
 }
 </script>
 
