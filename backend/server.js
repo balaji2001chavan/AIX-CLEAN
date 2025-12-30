@@ -1,136 +1,27 @@
 // ===============================
-// AIX FINAL SERVER.JS
-// Stable • Simple • Repairable
+// AIX FINAL SERVER
 // ===============================
 
 import express from "express";
 import cors from "cors";
-import fs from "fs";
-import path from "path";
 import dotenv from "dotenv";
-import { fileURLToPath } from "url";
+import mongoose from "mongoose";
 
-// ---------- ENV ----------
+// Load env
 dotenv.config();
 
-// ---------- PATH FIX ----------
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// ---------- APP ----------
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8080;
 
-// ---------- MIDDLEWARE ----------
+// -------------------------------
+// MIDDLEWARE
+// -------------------------------
 app.use(cors());
-app.use(express.json({ limit: "20mb" }));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-// ---------- OUTPUT DIR ----------
-const OUTPUT_DIR = path.join(__dirname, "output");
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
-
-// ---------- MEMORY ----------
-let AIX_STATE = {
-  mode: "AUTO-HYBRID",
-  aiAvailable: true,
-  pendingAction: "NO",
-  lastError: null,
-  startTime: Date.now()
-};
-
-// ---------- UTIL ----------
-function now() {
-  return new Date().toISOString();
-}
-
-function saveProof(type, data) {
-  const filename = `aix_${Date.now()}.txt`;
-  const filepath = path.join(OUTPUT_DIR, filename);
-
-  fs.writeFileSync(
-    filepath,
-    `AIX OUTPUT\nType: ${type}\nTime: ${now()}\n\n${data}`
-  );
-
-  return `/output/${filename}`;
-}
-
-// ---------- ROUTES ----------
-
-// Health
-app.get("/", (req, res) => {
-  res.json({
-    name: "AIX CORE",
-    status: "ONLINE",
-    time: now()
-  });
-});
-
-// Status (frontend poll safe)
-app.get("/api/status", (req, res) => {
-  res.json({
-    ...AIX_STATE,
-    uptimeSeconds: Math.floor((Date.now() - AIX_STATE.startTime) / 1000)
-  });
-});
-
-// Main AIX Chat + Execute
-app.post("/api/aix", async (req, res) => {
-  try {
-    const message = req.body?.message?.trim();
-
-    if (!message) {
-      return res.status(400).json({
-        success: false,
-        error: "Message missing"
-      });
-    }
-
-    // ---- SIMPLE INTELLIGENCE (no hallucination) ----
-    let reply = "";
-    let proofPath = null;
-
-    if (message.toLowerCase().includes("file")) {
-      proofPath = saveProof("FILE", message);
-      reply = "फाईल तयार केली आहे बॉस. Proof खाली दिला आहे.";
-    } 
-    else if (message.toLowerCase().includes("status")) {
-      reply = "AIX चालू आहे बॉस. सर्व सिस्टम stable आहे.";
-    }
-    else {
-      reply =
-        "मी ऐकतोय बॉस. तुम्ही जे सांगाल ते मी रियल कामात रूपांतर करेन. पुढे आदेश द्या.";
-    }
-
-    return res.json({
-      success: true,
-      reply,
-      proof: proofPath,
-      time: now()
-    });
-
-  } catch (err) {
-    AIX_STATE.lastError = err.message;
-
-    return res.status(500).json({
-      success: false,
-      error: "AIX INTERNAL ERROR",
-      details: err.message
-    });
-  }
-});
-
-// ---------- STATIC OUTPUT ----------
-app.use("/output", express.static(OUTPUT_DIR));
-
-// ---------- 404 SAFE ----------
-app.use((req, res) => {
-  res.status(404).json({ error: "Route not found" });
-});
+// -------------------------------
 // HEALTH CHECK
+// -------------------------------
 app.get("/api/health", (req, res) => {
   res.json({
     status: "ok",
@@ -139,7 +30,81 @@ app.get("/api/health", (req, res) => {
     time: new Date().toISOString()
   });
 });
-// ---------- START ----------
+
+// -------------------------------
+// AIX CHAT ENDPOINT
+// -------------------------------
+app.post("/api/aix", async (req, res) => {
+  try {
+    const message = req.body?.message;
+
+    if (!message) {
+      return res.status(400).json({
+        error: "Message is required"
+      });
+    }
+
+    // Basic intelligent reply (safe fallback)
+    let reply =
+      "नमस्कार बॉस. मी AIX आहे. मी ऐकतोय. कृपया स्पष्ट आदेश किंवा प्रश्न द्या.";
+
+    // If OpenAI key exists, use AI
+    if (process.env.OPENAI_API_KEY) {
+      const { default: OpenAI } = await import("openai");
+
+      const client = new OpenAI({
+        apiKey: process.env.OPENAI_API_KEY
+      });
+
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are AIX, a smart Indian AI assistant. Speak politely, clearly, and practically in Marathi/English mixed style."
+          },
+          {
+            role: "user",
+            content: message
+          }
+        ]
+      });
+
+      reply = completion.choices[0].message.content;
+    }
+
+    return res.json({
+      ai: "AIX",
+      reply,
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error("AIX ERROR:", err.message);
+    return res.status(500).json({
+      error: "AIX internal error",
+      details: err.message
+    });
+  }
+});
+
+// -------------------------------
+// MONGODB (OPTIONAL)
+// -------------------------------
+if (process.env.MONGODB_URI) {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => console.log("MongoDB connected"))
+    .catch((err) =>
+      console.error("MongoDB connection failed:", err.message)
+    );
+} else {
+  console.log("MongoDB skipped (MONGODB_URI not set)");
+}
+
+// -------------------------------
+// START SERVER
+// -------------------------------
 app.listen(PORT, () => {
-  console.log(`🔥 AIX Backend LIVE on port ${PORT}`);
+  console.log(`AIX server running on port ${PORT}`);
 });
