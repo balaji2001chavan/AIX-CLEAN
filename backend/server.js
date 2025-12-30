@@ -130,7 +130,15 @@ app.use("/output", express.static(OUTPUT_DIR));
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
-
+// HEALTH CHECK
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+    ai: "AIX",
+    mode: "online",
+    time: new Date().toISOString()
+  });
+});
 // ---------- START ----------
 app.listen(PORT, () => {
   console.log(`🔥 AIX Backend LIVE on port ${PORT}`);
