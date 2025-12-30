@@ -1,234 +1,224 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AIX – Global Intelligence</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-  color: #fff;
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-header {
-  padding: 15px;
-  background: rgba(0,0,0,0.4);
-  text-align: center;
-}
-header h1 { margin: 0; }
-header p { margin: 5px 0 0; font-size: 14px; opacity: 0.8; }
+  <meta charset="UTF-8" />
+  <title>AIX – Global Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-#actions {
-  display: flex;
-  justify-content: space-around;
-  padding: 10px;
-  background: rgba(0,0,0,0.5);
-}
-#actions button {
-  padding: 10px 14px;
-  border: none;
-  border-radius: 8px;
-  font-weight: bold;
-  cursor: pointer;
-  background: #00ffcc;
-  color: #000;
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont;
+      background: #0b0f14;
+      color: #e6edf3;
+      display: flex;
+      height: 100vh;
+    }
 
-#chat {
-  flex: 1;
-  padding: 15px;
-  overflow-y: auto;
-}
-.msg {
-  max-width: 80%;
-  margin-bottom: 12px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  line-height: 1.5;
-}
-.user {
-  background: #00c6ff;
-  color: #000;
-  margin-left: auto;
-}
-.aix {
-  background: rgba(255,255,255,0.15);
-}
+    .sidebar {
+      width: 260px;
+      background: #0f1720;
+      border-right: 1px solid #1f2937;
+      padding: 16px;
+      box-sizing: border-box;
+    }
 
-#inputBar {
-  display: flex;
-  padding: 10px;
-  background: rgba(0,0,0,0.7);
-}
-#inputBar input {
-  flex: 1;
-  padding: 12px;
-  border-radius: 8px;
-  border: none;
-  font-size: 16px;
-}
-#inputBar button {
-  margin-left: 10px;
-  padding: 12px 18px;
-  border-radius: 8px;
-  border: none;
-  background: #00ffcc;
-  font-weight: bold;
-  cursor: pointer;
-}
+    .sidebar h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #38bdf8;
+    }
 
-footer {
-  text-align: center;
-  font-size: 12px;
-  padding: 6px;
-  opacity: 0.6;
-}
-</style>
+    .topic {
+      padding: 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 6px;
+      background: #111827;
+    }
+
+    .topic.active {
+      background: #1d4ed8;
+    }
+
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #1f2937;
+      background: #020617;
+      font-weight: 600;
+    }
+
+    .chat {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .msg {
+      margin-bottom: 14px;
+      max-width: 80%;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: #1e293b;
+      padding: 10px;
+      border-radius: 10px;
+      margin-left: auto;
+    }
+
+    .aix {
+      background: #020617;
+      border: 1px solid #1f2937;
+      padding: 10px;
+      border-radius: 10px;
+    }
+
+    .output {
+      margin-top: 8px;
+      font-size: 13px;
+      color: #93c5fd;
+    }
+
+    .input-bar {
+      display: flex;
+      padding: 10px;
+      border-top: 1px solid #1f2937;
+      background: #020617;
+    }
+
+    textarea {
+      flex: 1;
+      resize: none;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      background: #020617;
+      color: #e6edf3;
+      height: 48px;
+    }
+
+    button {
+      margin-left: 10px;
+      padding: 0 18px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: #2563eb;
+      color: white;
+      font-weight: 600;
+    }
+
+    a {
+      color: #38bdf8;
+    }
+  </style>
 </head>
 
 <body>
-
-<header>
-  <h1>AIX</h1>
-  <p>Global Human-First Intelligence</p>
-</header>
-
-<div id="actions">
-  <button onclick="preset('create')">Create</button>
-  <button onclick="preset('plan')">Plan</button>
-  <button onclick="preset('earn')">Earn</button>
-  <button onclick="preset('improve')">Improve AIX</button>
-</div>
-
-<div id="chat">
-  <div class="msg aix">
-    नमस्कार बॉस 👋  
-    मी AIX आहे.  
-    बोला — माहिती, सल्ला की रियल काम?
+  <div class="sidebar">
+    <h2>AIX Topics</h2>
+    <div id="topics"></div>
+    <button onclick="newTopic()">+ New Topic</button>
   </div>
-</div>
 
-<div id="inputBar">
-  <input id="userInput" placeholder="इथे बोला / लिहा..." />
-  <button onclick="send()">Send</button>
-</div>
+  <div class="main">
+    <div class="header">
+      AIX – Speak. Decide. Execute.
+    </div>
 
-<footer>
-  AIX works with you • Decisions before execution
-</footer>
+    <div id="chat" class="chat"></div>
+
+    <div class="input-bar">
+      <textarea id="input" placeholder="बोला बॉस… (Marathi / Hindi / English)"></textarea>
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
 
 <script>
-function addMsg(text, who) {
+const BACKEND_URL = "https://boss-aix-backend-nai6.onrender.com/api/aix/chat";
+// ⬆️ जर backend URL बदलला असेल तर इथे बदला
+
+let sessionId = "topic-1";
+let topics = { "topic-1": "General" };
+
+function renderTopics() {
+  const el = document.getElementById("topics");
+  el.innerHTML = "";
+  Object.keys(topics).forEach(id => {
+    const div = document.createElement("div");
+    div.className = "topic" + (id === sessionId ? " active" : "");
+    div.innerText = topics[id];
+    div.onclick = () => switchTopic(id);
+    el.appendChild(div);
+  });
+}
+
+function newTopic() {
+  const id = "topic-" + Date.now();
+  topics[id] = "New Topic";
+  sessionId = id;
+  document.getElementById("chat").innerHTML = "";
+  renderTopics();
+}
+
+function switchTopic(id) {
+  sessionId = id;
+  document.getElementById("chat").innerHTML = "";
+  renderTopics();
+}
+
+function addMsg(text, cls, extraHtml = "") {
   const chat = document.getElementById("chat");
   const div = document.createElement("div");
-  div.className = "msg " + who;
-  div.innerText = text;
+  div.className = "msg " + cls;
+  div.innerHTML = text + extraHtml;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
-function send() {
-  const input = document.getElementById("userInput");
+async function send() {
+  const input = document.getElementById("input");
   const text = input.value.trim();
   if (!text) return;
-  addMsg(text, "user");
+
   input.value = "";
-  setTimeout(() => aixReply(text), 600);
-}
+  addMsg(text, "user");
 
-function preset(type) {
-  let msg = "";
-  if (type === "create")
-    msg = "बॉस, तुम्हाला काय बनवायचं आहे? (content / app / file / idea)";
-  if (type === "plan")
-    msg = "बॉस, कोणत्या विषयावर plan हवा आहे?";
-  if (type === "earn")
-    msg = "बॉस, पैसे कमवण्यासाठी तुमची skill / resources काय आहेत?";
-  if (type === "improve")
-    msg = "बॉस, AIX मध्ये काय सुधारायचं आहे?";
-  addMsg(msg, "aix");
-}
+  try {
+    const res = await fetch(BACKEND_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: text,
+        sessionId
+      })
+    });
 
-function aixReply(userText) {
-  addMsg(
-`मी समजलो बॉस 👍
+    const data = await res.json();
 
-तुमचा मुद्दा:
-"${userText}"
+    let extra = "";
+    if (data.proof || data.output || data.file) {
+      const link = data.proof || data.output || data.file;
+      extra = `<div class="output">🔗 <a href="${link}" target="_blank">View / Download Output</a></div>`;
+    }
 
-पुढचा मार्ग असा आहे:
-1️⃣ मी माहिती देऊ  
-2️⃣ मी plan देऊ  
-3️⃣ मी real-world steps देऊ  
+    addMsg(data.reply?.text || data.reply || "No reply", "aix", extra);
 
-कृपया क्रमांक लिहा (1 / 2 / 3).`,
-  "aix");
-}
-<script>
-let mode = "chat";
-
-function aixReply(userText) {
-  if (mode === "work") {
-    addMsg(
-`बॉस, हे REAL WORK MODE आहे 🔥
-
-काम: "${userText}"
-
-मी हे करू शकतो:
-✅ Usable content तयार
-✅ Step-by-step execution plan
-✅ Client-ready output
-
-सांग:
-1️⃣ Content बनव
-2️⃣ Plan बनव
-3️⃣ Checklist + Commands दे
-
-फक्त क्रमांक लिहा (1 / 2 / 3).`,
-    "aix");
-    return;
-  }
-
-  addMsg(
-`मी समजलो बॉस 👍
-
-तुमचा मुद्दा:
-"${userText}"
-
-पुढे काय करायचं?
-1️⃣ माहिती
-2️⃣ सल्ला / plan
-3️⃣ REAL WORK MODE
-
-क्रमांक लिहा (1 / 2 / 3).`,
-  "aix");
-}
-
-function preset(type) {
-  if (type === "create") {
-    mode = "work";
-    addMsg("REAL WORK MODE ON 🔥\nकाय बनवायचं आहे ते सांगा.", "aix");
-    return;
-  }
-  if (type === "plan") {
-    addMsg("कोणत्या विषयावर plan हवा आहे?", "aix");
-    return;
-  }
-  if (type === "earn") {
-    addMsg("तुमची skill / resources काय आहेत? मी earning plan देतो.", "aix");
-    return;
-  }
-  if (type === "improve") {
-    addMsg("AIX मध्ये काय सुधारायचं आहे? मी roadmap देतो.", "aix");
-    return;
+  } catch (e) {
+    addMsg("❌ Backend संपर्क झाला नाही.\n" + e.message, "aix");
   }
 }
+
+renderTopics();
 </script>
-</script>
-
 </body>
 </html>
