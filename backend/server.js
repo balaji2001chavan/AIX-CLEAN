@@ -1,44 +1,33 @@
 import express from "express";
-import cors from "cors";
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = 8080;
 
-/* ---------- MIDDLEWARE ---------- */
-app.use(cors());
+/* 🔒 VERY IMPORTANT */
+app.disable("x-powered-by");
+
+/* 🔹 BASIC MIDDLEWARE */
 app.use(express.json());
 
-/* ---------- HEALTH CHECK ---------- */
+/* 🔹 HEALTH CHECK (TOP PRIORITY) */
 app.get("/api/health", (req, res) => {
-  res.json({
-    status: "ok",
-    ai: "AIX",
-    mode: "online",
+  res.status(200).json({
+    ok: true,
+    service: "AIX",
+    mode: "ONLINE",
     time: new Date().toISOString()
   });
 });
 
-/* ---------- AIX CHAT (basic) ---------- */
-app.post("/api/aix", async (req, res) => {
-  const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ error: "message required" });
-  }
-
-  // Temporary smart fallback (ChatGPT-style tone)
-  res.json({
-    reply: `नमस्कार Boss 👑  
-मी AIX आहे.  
-तू म्हणालास: "${message}"  
-
-आत्ता मी LIVE आहे, server stable आहे,  
-आणि पुढे मी OpenAI / Gemini / tools जोडायला तयार आहे.  
-पुढचा आदेश दे 🔥`
+/* 🔹 FALLBACK (HTML येऊ नये म्हणून) */
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl
   });
 });
 
-/* ---------- START SERVER ---------- */
-app.listen(PORT, () => {
-  console.log(`✅ AIX server running on port ${PORT}`);
+/* 🔹 START SERVER */
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 AIX BASE SERVER RUNNING ON PORT ${PORT}`);
 });
