@@ -1,259 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>AIX – Global Intelligence</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <title>AIX – Global Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system;
-  background: #0b0f14;
-  color: #e6edf3;
-  height: 100vh;
-  display: flex;
-}
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
 
-/* Sidebar */
-#sidebar {
-  width: 260px;
-  background: #0f172a;
-  border-right: 1px solid #1f2937;
-  padding: 12px;
-  box-sizing: border-box;
-  overflow-y: auto;
-}
+    header {
+      padding: 14px;
+      background: #020617;
+      text-align: center;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
 
-#sidebar h2 {
-  margin: 0 0 10px;
-  font-size: 16px;
-  color: #38bdf8;
-}
+    #chat {
+      flex: 1;
+      padding: 12px;
+      overflow-y: auto;
+    }
 
-.topic {
-  padding: 8px;
-  border-radius: 6px;
-  cursor: pointer;
-  background: #020617;
-  margin-bottom: 6px;
-}
+    .msg {
+      margin-bottom: 12px;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 85%;
+    }
 
-.topic.active {
-  background: #1d4ed8;
-}
+    .user {
+      background: #2563eb;
+      align-self: flex-end;
+    }
 
-button {
-  cursor: pointer;
-}
+    .aix {
+      background: #1e293b;
+      align-self: flex-start;
+    }
 
-/* Main */
-#main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
+    footer {
+      display: flex;
+      padding: 10px;
+      background: #020617;
+    }
 
-#header {
-  padding: 10px 14px;
-  border-bottom: 1px solid #1f2937;
-  background: #020617;
-  font-weight: 600;
-}
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
 
-/* Chat */
-#chat {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.msg {
-  max-width: 80%;
-  margin-bottom: 14px;
-  line-height: 1.5;
-  white-space: pre-wrap;
-}
-
-.user {
-  margin-left: auto;
-  background: #1e293b;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.aix {
-  background: #020617;
-  border: 1px solid #1f2937;
-  padding: 10px;
-  border-radius: 10px;
-}
-
-.output {
-  margin-top: 8px;
-  font-size: 13px;
-}
-
-.output a {
-  color: #38bdf8;
-}
-
-/* Input */
-#inputBar {
-  display: flex;
-  gap: 8px;
-  padding: 10px;
-  border-top: 1px solid #1f2937;
-  background: #020617;
-}
-
-textarea {
-  flex: 1;
-  resize: none;
-  height: 44px;
-  padding: 10px;
-  border-radius: 8px;
-  border: none;
-  outline: none;
-  background: #020617;
-  color: #e6edf3;
-}
-
-#sendBtn {
-  padding: 0 18px;
-  border-radius: 8px;
-  border: none;
-  background: #2563eb;
-  color: #fff;
-  font-weight: 600;
-}
-
-#upload {
-  display: none;
-}
-</style>
+    button {
+      margin-left: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #22c55e;
+      font-weight: bold;
+      cursor: pointer;
+    }
+  </style>
 </head>
-
 <body>
 
-<div id="sidebar">
-  <h2>AIX Topics</h2>
-  <div id="topics"></div>
-  <button onclick="newTopic()" style="width:100%;margin-top:8px;">+ New Topic</button>
-</div>
+<header>AIX – Global Intelligence</header>
 
-<div id="main">
-  <div id="header">AIX – Speak • Decide • Execute</div>
+<div id="chat"></div>
 
-  <div id="chat"></div>
-
-  <div id="inputBar">
-    <button onclick="document.getElementById('upload').click()">📎</button>
-    <input type="file" id="upload" onchange="uploadFile(this.files[0])">
-    <textarea id="input" placeholder="बोला बॉस… (Marathi / Hindi / English)"></textarea>
-    <button id="sendBtn" onclick="send()">Send</button>
-  </div>
-</div>
+<footer>
+  <input id="input" placeholder="AIX ला आदेश द्या..." />
+  <button onclick="send()">Send</button>
+</footer>
 
 <script>
-/* ===== CONFIG ===== */
-const BACKEND_URL = "https://boss-aix-backend-nai6.onrender.com/api/aix/chat";
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
 
-/* ===== STATE ===== */
-let topics = {};
-let currentTopic = null;
-
-/* ===== INIT ===== */
-newTopic();
-
-/* ===== FUNCTIONS ===== */
-function newTopic() {
-  const id = "topic-" + Date.now();
-  topics[id] = { name: "New Topic", messages: [] };
-  currentTopic = id;
-  renderTopics();
-  renderChat();
-}
-
-function renderTopics() {
-  const el = document.getElementById("topics");
-  el.innerHTML = "";
-  Object.keys(topics).forEach(id => {
-    const div = document.createElement("div");
-    div.className = "topic" + (id === currentTopic ? " active" : "");
-    div.innerText = topics[id].name;
-    div.onclick = () => {
-      currentTopic = id;
-      renderTopics();
-      renderChat();
-    };
-    el.appendChild(div);
-  });
-}
-
-function renderChat() {
-  const chat = document.getElementById("chat");
-  chat.innerHTML = "";
-  topics[currentTopic].messages.forEach(m => addMsg(m.text, m.role, m.output));
-}
-
-function addMsg(text, role, outputLink) {
-  const chat = document.getElementById("chat");
+function add(text, cls) {
   const div = document.createElement("div");
-  div.className = "msg " + role;
-  div.innerHTML = text;
-
-  if (outputLink) {
-    const out = document.createElement("div");
-    out.className = "output";
-    out.innerHTML = `🔗 <a href="${outputLink}" target="_blank">View / Download</a>`;
-    div.appendChild(out);
-  }
-
+  div.className = "msg " + cls;
+  div.innerText = text;
   chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
 
 async function send() {
-  const input = document.getElementById("input");
   const text = input.value.trim();
   if (!text) return;
 
+  add(text, "user");
   input.value = "";
-  topics[currentTopic].messages.push({ role: "user", text });
-  addMsg(text, "user");
 
   try {
-    const res = await fetch(BACKEND_URL, {
+    const res = await fetch("http://localhost:8080/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: text,
-        sessionId: currentTopic
-      })
+      body: JSON.stringify({ message: text })
     });
 
     const data = await res.json();
+    add(data.reply, "aix");
 
-    const reply = data.reply?.text || data.reply || "No reply";
-    const output = data.proof || data.output || data.file || null;
-
-    topics[currentTopic].messages.push({
-      role: "aix",
-      text: reply,
-      output
-    });
-
-    addMsg(reply, "aix", output);
-
-  } catch (err) {
-    addMsg("❌ Backend शी संपर्क झाला नाही.\n" + err.message, "aix");
+  } catch (e) {
+    add("❌ Backend शी संपर्क झाला नाही", "aix");
   }
-}
-
-function uploadFile(file) {
-  if (!file) return;
-  addMsg(`📁 Uploaded file: ${file.name}`, "user");
 }
 </script>
 
