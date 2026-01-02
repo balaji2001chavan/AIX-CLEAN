@@ -1,121 +1,35 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
   <meta charset="UTF-8">
-  <title>AIX – Global Intelligence</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
+  <title>AIX</title>
   <style>
-    body {
-      margin: 0;
-      font-family: system-ui, sans-serif;
-      background: #0f172a;
-      color: #e5e7eb;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-
-    header {
-      padding: 14px;
-      background: #020617;
-      text-align: center;
-      font-weight: bold;
-      letter-spacing: 1px;
-    }
-
-    #chat {
-      flex: 1;
-      padding: 12px;
-      overflow-y: auto;
-    }
-
-    .msg {
-      margin-bottom: 12px;
-      padding: 10px;
-      border-radius: 10px;
-      max-width: 85%;
-    }
-
-    .user {
-      background: #2563eb;
-      align-self: flex-end;
-    }
-
-    .aix {
-      background: #1e293b;
-      align-self: flex-start;
-    }
-
-    footer {
-      display: flex;
-      padding: 10px;
-      background: #020617;
-    }
-
-    input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 8px;
-      border: none;
-      outline: none;
-      font-size: 16px;
-    }
-
-    button {
-      margin-left: 8px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      border: none;
-      background: #22c55e;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    body { background:#0f172a; color:white; font-family:sans-serif; }
+    #chat { height:80vh; overflow:auto; padding:10px; }
+    input,button { padding:10px; }
   </style>
 </head>
 <body>
 
-<header>AIX – Global Intelligence</header>
+<h2>AIX – Global Intelligence</h2>
 
 <div id="chat"></div>
 
-<footer>
-  <input id="input" placeholder="AIX ला आदेश द्या..." />
-  <button onclick="send()">Send</button>
-</footer>
+<input id="msg" placeholder="AIX ला आदेश द्या..." />
+<button onclick="send()">Send</button>
 
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-
-function add(text, cls) {
-  const div = document.createElement("div");
-  div.className = "msg " + cls;
-  div.innerText = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
-
 async function send() {
-  const text = input.value.trim();
-  if (!text) return;
-
-  add(text, "user");
-  input.value = "";
-
-  try {
-    const res = await fetch("http://localhost:8080/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: text })
-    });
-
-    const data = await res.json();
-    add(data.reply, "aix");
-
-  } catch (e) {
-    add("❌ Backend शी संपर्क झाला नाही", "aix");
-  }
+  const msg = document.getElementById("msg").value;
+  const res = await fetch("/api/chat", {
+    method: "POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ message: msg })
+  });
+  const data = await res.json();
+  document.getElementById("chat").innerHTML +=
+    "<p><b>You:</b> " + msg + "</p>" +
+    "<p><b>AIX:</b> " + data.reply + "</p>";
 }
 </script>
 
