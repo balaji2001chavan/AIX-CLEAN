@@ -1,18 +1,20 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = 8080;
 
 app.use(cors());
 app.use(express.json());
 
-/* =========================
-   HEALTH CHECK
-========================= */
+/* =====================
+   HEALTH CHECK (JSON)
+===================== */
 app.get("/api/health", (req, res) => {
   res.json({
     status: "OK",
@@ -21,37 +23,27 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/* =========================
-   CHAT API (AIX CORE)
-========================= */
-app.post("/api/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
+/* =====================
+   CHAT API
+===================== */
+app.post("/api/chat", (req, res) => {
+  const { message } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ error: "Message missing" });
-    }
-
-    // TEMP intelligent reply (later OpenAI / Gemini जोडू)
-    const reply = `🤖 AIX ऐकत आहे.\nतुम्ही म्हणालात: "${message}"\n\nपुढील आदेश द्या बॉस.`;
-
-    res.json({
-      success: true,
-      reply,
-      timestamp: new Date().toISOString()
-    });
-
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message
-    });
-  }
+  res.json({
+    reply: `🤖 AIX ऐकत आहे.\nतुमचा मेसेज: "${message}"`
+  });
 });
 
-/* =========================
+/* =====================
+   FRONTEND SERVE
+===================== */
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../frontend/index.html"));
+});
+
+/* =====================
    SERVER START
-========================= */
+===================== */
 app.listen(PORT, () => {
-  console.log(`🚀 AIX server running on port ${PORT}`);
+  console.log(`🚀 AIX running on port ${PORT}`);
 });
