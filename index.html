@@ -1,275 +1,134 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="mr">
 <head>
   <meta charset="UTF-8" />
-  <title>AIX – Global Intelligence</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <!-- Google Font -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-
+  <title>BOSS AIX – Smart Console</title>
   <style>
-    * { box-sizing: border-box; }
     body {
-      margin: 0;
-      font-family: 'Inter', sans-serif;
-      background: radial-gradient(circle at top, #0f2027, #000);
-      color: #eaeaea;
-      height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
       display: flex;
-    }
-
-    /* Sidebar */
-    .sidebar {
-      width: 260px;
-      background: rgba(15, 32, 39, 0.9);
-      border-right: 1px solid rgba(255,255,255,0.1);
-      padding: 16px;
-      overflow-y: auto;
-    }
-
-    .sidebar h2 {
-      margin: 0 0 16px;
-      font-size: 18px;
-      color: #00f5ff;
-    }
-
-    .topic {
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-      cursor: pointer;
-      background: rgba(255,255,255,0.05);
-    }
-
-    .topic:hover {
-      background: rgba(0,245,255,0.15);
-    }
-
-    /* Main */
-    .main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Header */
-    .header {
-      padding: 12px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(0,0,0,0.4);
-    }
-
-    .header span {
-      font-weight: 600;
-      color: #00f5ff;
-    }
-
-    /* Chat Area */
-    .chat {
-      flex: 1;
+      justify-content: center;
       padding: 20px;
-      overflow-y: auto;
     }
-
-    .msg {
-      max-width: 75%;
-      margin-bottom: 14px;
-      padding: 12px 14px;
+    .app {
+      width: 100%;
+      max-width: 900px;
+      background: #020617;
       border-radius: 12px;
-      line-height: 1.4;
-      white-space: pre-wrap;
+      padding: 20px;
     }
-
-    .user {
-      background: #005c6e;
-      align-self: flex-end;
-      margin-left: auto;
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
     }
-
-    .aix {
-      background: rgba(255,255,255,0.08);
-      border-left: 3px solid #00f5ff;
-    }
-
-    /* Output Viewer */
-    .output {
-      border-top: 1px solid rgba(255,255,255,0.1);
-      padding: 10px 20px;
-      background: rgba(0,0,0,0.5);
-      font-size: 14px;
-    }
-
-    .output a {
-      color: #00f5ff;
-      text-decoration: none;
-    }
-
-    /* Input Bar */
-    .input-bar {
-      display: flex;
-      gap: 10px;
-      padding: 14px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      background: rgba(0,0,0,0.6);
-    }
-
-    .input-bar input {
-      flex: 1;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      outline: none;
+    textarea {
+      width: 100%;
+      height: 120px;
+      background: #020617;
+      color: #e5e7eb;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
       font-size: 15px;
     }
-
-    .btn {
-      padding: 0 16px;
-      border-radius: 10px;
+    button {
+      margin-top: 10px;
+      padding: 10px 20px;
+      background: #2563eb;
+      color: white;
       border: none;
+      border-radius: 8px;
       cursor: pointer;
-      background: #00f5ff;
-      color: #000;
-      font-weight: 600;
     }
-
-    .btn.secondary {
-      background: rgba(255,255,255,0.15);
-      color: #fff;
+    button:hover {
+      background: #1d4ed8;
     }
-
-    /* Status */
-    .status {
-      font-size: 12px;
-      color: #9ff;
+    .chat {
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .msg {
+      margin-bottom: 12px;
+    }
+    .user {
+      color: #38bdf8;
+    }
+    .aix {
+      color: #a7f3d0;
+    }
+    img, video {
+      max-width: 100%;
+      margin-top: 10px;
+      border-radius: 8px;
+    }
+    pre {
+      background: #020617;
+      padding: 10px;
+      border-radius: 8px;
+      overflow-x: auto;
     }
   </style>
 </head>
-
 <body>
+  <div class="app">
+    <h1>BOSS AIX – Talk to AI</h1>
 
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h2>🧠 AIX Topics</h2>
-    <div id="topics"></div>
-  </div>
+    <textarea id="input" placeholder="AIX:
+GOAL: Project inspect कर
+OUTPUT: Report"></textarea>
 
-  <!-- Main -->
-  <div class="main">
+    <button onclick="askAIX()">Ask AIX</button>
 
-    <!-- Header -->
-    <div class="header">
-      <span>AIX – Global Intelligence Online</span>
-      <div class="status" id="status">Status: Idle</div>
-    </div>
-
-    <!-- Chat -->
-    <div class="chat" id="chat">
-      <div class="msg aix">
-        Good evening बॉस 🌙  
-        मी AIX आहे.  
-        माहिती, सल्ला, की **रियल काम** — काय हवं आहे?
-      </div>
-    </div>
-
-    <!-- Output -->
-    <div class="output" id="output">
-      Output: Nothing yet.
-    </div>
-
-    <!-- Input -->
-    <div class="input-bar">
-      <button class="btn secondary" onclick="startVoice()">🎤</button>
-      <input id="input" placeholder="इथे बोला किंवा लिहा… (Marathi / Hindi / English)">
-      <button class="btn" onclick="send()">Send</button>
-    </div>
-
+    <div class="chat" id="chat"></div>
   </div>
 
 <script>
-const chat = document.getElementById("chat");
-const input = document.getElementById("input");
-const statusBox = document.getElementById("status");
-const outputBox = document.getElementById("output");
-const topicsBox = document.getElementById("topics");
+const BACKEND_URL = "https://172.31.41.137/api/aix";
+// ↑ जर backend URL वेगळा असेल तर बदल
 
-let currentTopic = "General";
-let topics = { General: [] };
+async function askAIX() {
+  const input = document.getElementById("input").value;
+  if (!input) return;
 
-function addTopic(name) {
-  if (!topics[name]) {
-    topics[name] = [];
-    const div = document.createElement("div");
-    div.className = "topic";
-    div.innerText = name;
-    div.onclick = () => loadTopic(name);
-    topicsBox.appendChild(div);
+  const chat = document.getElementById("chat");
+  chat.innerHTML += `<div class="msg user">YOU: ${input}</div>`;
+
+  document.getElementById("input").value = "";
+
+  const res = await fetch(BACKEND_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: input })
+  });
+
+  const data = await res.json();
+
+  if (data.conversation) {
+    chat.innerHTML = "";
+    data.conversation.forEach(m => {
+      chat.innerHTML += `<div class="msg ${m.role}">
+        ${m.role.toUpperCase()}: ${m.text}
+      </div>`;
+    });
   }
-}
 
-addTopic("General");
+  if (data.imageUrl) {
+    chat.innerHTML += `<img src="${data.imageUrl}" />`;
+  }
 
-function loadTopic(name) {
-  currentTopic = name;
-  chat.innerHTML = "";
-  topics[name].forEach(m => renderMsg(m.text, m.by));
-}
+  if (data.videoJob) {
+    chat.innerHTML += `<pre>Video Job File: ${data.videoJob}</pre>`;
+  }
 
-function renderMsg(text, by) {
-  const div = document.createElement("div");
-  div.className = "msg " + by;
-  div.innerText = text;
-  chat.appendChild(div);
   chat.scrollTop = chat.scrollHeight;
 }
-
-function send() {
-  const text = input.value.trim();
-  if (!text) return;
-
-  input.value = "";
-  addTopic(currentTopic);
-  topics[currentTopic].push({ text, by: "user" });
-  renderMsg(text, "user");
-
-  statusBox.innerText = "Status: AIX thinking…";
-
-  setTimeout(() => {
-    const reply =
-`बरं बॉस 👍  
-मी समजलो आहे.
-
-मी पुढे हे करू शकतो:
-1️⃣ आधी परिणाम सांगेल  
-2️⃣ मग “करू का?” विचारेन  
-3️⃣ हो म्हटल्यावर रियल काम  
-4️⃣ आणि proof इथेच दाखवेन
-
-पुढचा आदेश द्या बॉस.`;
-
-    topics[currentTopic].push({ text: reply, by: "aix" });
-    renderMsg(reply, "aix");
-
-    statusBox.innerText = "Status: Idle";
-  }, 800);
-}
-
-function startVoice() {
-  if (!('webkitSpeechRecognition' in window)) {
-    alert("Voice input supported नाही");
-    return;
-  }
-  const rec = new webkitSpeechRecognition();
-  rec.lang = "en-IN";
-  rec.start();
-  rec.onresult = e => {
-    input.value = e.results[0][0].transcript;
-  };
-}
 </script>
-
 </body>
 </html>
