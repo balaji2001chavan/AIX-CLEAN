@@ -1,62 +1,237 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AIX – Global Agentic Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-dotenv.config();
+  <style>
+    :root {
+      --bg: #0b0f14;
+      --panel: #121821;
+      --accent: #00e5ff;
+      --text: #e8eef5;
+      --muted: #8b9bb4;
+      --user: #1f2937;
+      --aix: #0d3b66;
+    }
 
-const app = express();
+    * { box-sizing: border-box; }
 
-/* =====================
-   BASIC MIDDLEWARE
-===================== */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-}));
-app.use(express.json());
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
 
-/* =====================
-   ROOT CHECK
-===================== */
-app.get("/", (req, res) => {
-  res.send("✅ AIX Backend is LIVE");
-});
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--panel);
+      border-right: 1px solid #1c2430;
+      display: flex;
+      flex-direction: column;
+    }
 
-/* =====================
-   HEALTH CHECK
-===================== */
-app.get("/api/health", (req, res) => {
-  res.json({
-    status: "OK",
-    server: "AIX",
-    time: new Date().toISOString(),
-  });
-});
+    .logo {
+      padding: 16px;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--accent);
+      border-bottom: 1px solid #1c2430;
+    }
 
-/* =====================
-   AIX CHAT (DUMMY SAFE)
-   (Frontend connect test)
-===================== */
-app.post("/api/aix/chat", async (req, res) => {
-  const { message } = req.body;
+    .new-chat {
+      margin: 16px;
+      padding: 10px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
 
-  if (!message) {
-    return res.status(400).json({
-      error: "Message required",
-    });
+    .history {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .history-item {
+      padding: 10px;
+      border-radius: 6px;
+      margin-bottom: 6px;
+      cursor: pointer;
+      color: var(--muted);
+    }
+
+    .history-item:hover {
+      background: #1a2230;
+      color: var(--text);
+    }
+
+    /* Main */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .header {
+      padding: 14px 18px;
+      border-bottom: 1px solid #1c2430;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #4ade80;
+    }
+
+    .chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+    }
+
+    .msg {
+      max-width: 800px;
+      margin-bottom: 16px;
+      padding: 14px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background: var(--user);
+      margin-left: auto;
+    }
+
+    .aix {
+      background: var(--aix);
+      margin-right: auto;
+    }
+
+    .input-area {
+      padding: 14px;
+      border-top: 1px solid #1c2430;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .input-area textarea {
+      flex: 1;
+      resize: none;
+      background: #0f1623;
+      color: var(--text);
+      border: 1px solid #1c2430;
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+      height: 48px;
+    }
+
+    .input-area button {
+      background: var(--accent);
+      border: none;
+      color: #000;
+      padding: 12px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .input-area button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="logo">AIX</div>
+    <button class="new-chat" onclick="newChat()">+ New Chat</button>
+    <div class="history" id="history"></div>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="header">
+      <div>Agentic Intelligence Exchange</div>
+      <div class="status">● AIX Online</div>
+    </div>
+
+    <div class="chat" id="chat"></div>
+
+    <div class="input-area">
+      <textarea id="input" placeholder="Ask AIX anything…"></textarea>
+      <button onclick="send()">Send</button>
+    </div>
+  </div>
+
+<script>
+  const API = "https://allinonestopdeals.com/api/aix/chat";
+  const chat = document.getElementById("chat");
+  const input = document.getElementById("input");
+
+  function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
   }
 
-  res.json({
-    reply: `👋 बॉस, AIX ऐकत आहे. तुम्ही म्हणालात: "${message}"`,
-    mode: "ONLINE",
-  });
-});
+  async function send() {
+    const text = input.value.trim();
+    if (!text) return;
 
-/* =====================
-   SERVER START
-===================== */
-const PORT = process.env.PORT || 8080;
+    addMessage(text, "user");
+    input.value = "";
 
-app.listen(PORT, () => {
-  console.log(`🚀 AIX server running on port ${PORT}`);
-});
+    addMessage("AIX is thinking…", "aix");
+
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+      });
+
+      const data = await res.json();
+      chat.lastChild.remove();
+      addMessage(data.reply || "AIX responded.", "aix");
+
+    } catch (err) {
+      chat.lastChild.remove();
+      addMessage("❌ Backend connection failed.", "aix");
+    }
+  }
+
+  function newChat() {
+    chat.innerHTML = "";
+    addMessage("👋 Hi, I am AIX. How can I help you today?", "aix");
+  }
+
+  newChat();
+</script>
+
+</body>
+</html>
