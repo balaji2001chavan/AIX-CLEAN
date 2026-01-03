@@ -2,132 +2,186 @@
 <html lang="mr">
 <head>
   <meta charset="UTF-8" />
-  <title>BOSS AIX – Smart Console</title>
+  <title>BOSS AIX – Live AI Console</title>
+
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #0f172a;
+      margin: 0;
+      font-family: system-ui, Arial;
+      background: #0b1220;
       color: #e5e7eb;
       display: flex;
       justify-content: center;
-      padding: 20px;
+      height: 100vh;
     }
+
     .app {
       width: 100%;
       max-width: 900px;
-      background: #020617;
-      border-radius: 12px;
-      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
     }
-    h1 {
+
+    header {
       text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .status {
+      text-align: center;
+      font-size: 13px;
+      color: #94a3b8;
       margin-bottom: 10px;
     }
+
+    .chat {
+      flex: 1;
+      background: #020617;
+      border-radius: 10px;
+      padding: 12px;
+      overflow-y: auto;
+      border: 1px solid #1e293b;
+    }
+
+    .msg {
+      margin-bottom: 14px;
+      line-height: 1.4;
+    }
+
+    .user {
+      color: #38bdf8;
+    }
+
+    .aix {
+      color: #a7f3d0;
+    }
+
+    .time {
+      font-size: 11px;
+      color: #64748b;
+    }
+
     textarea {
+      margin-top: 10px;
       width: 100%;
-      height: 120px;
+      height: 80px;
       background: #020617;
       color: #e5e7eb;
-      border: 1px solid #334155;
+      border: 1px solid #1e293b;
       border-radius: 8px;
       padding: 10px;
       font-size: 15px;
     }
+
     button {
-      margin-top: 10px;
-      padding: 10px 20px;
+      margin-top: 8px;
+      padding: 10px;
       background: #2563eb;
-      color: white;
       border: none;
+      color: white;
       border-radius: 8px;
+      font-size: 15px;
       cursor: pointer;
     }
+
     button:hover {
       background: #1d4ed8;
     }
-    .chat {
-      margin-top: 20px;
-      max-height: 400px;
-      overflow-y: auto;
-      background: #020617;
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 10px;
-    }
-    .msg {
-      margin-bottom: 12px;
-    }
-    .user {
-      color: #38bdf8;
-    }
-    .aix {
-      color: #a7f3d0;
-    }
+
     img, video {
       max-width: 100%;
-      margin-top: 10px;
+      margin-top: 8px;
       border-radius: 8px;
     }
-    pre {
-      background: #020617;
-      padding: 10px;
-      border-radius: 8px;
-      overflow-x: auto;
+
+    .typing {
+      color: #94a3b8;
+      font-style: italic;
     }
   </style>
 </head>
+
 <body>
   <div class="app">
-    <h1>BOSS AIX – Talk to AI</h1>
+    <header>BOSS AIX – Live AI Console</header>
 
-    <textarea id="input" placeholder="AIX:
-GOAL: Project inspect कर
-OUTPUT: Report"></textarea>
-
-    <button onclick="askAIX()">Ask AIX</button>
+    <div class="status" id="status">
+      AWS Backend: 172.31.41.137 | <span id="clock"></span>
+    </div>
 
     <div class="chat" id="chat"></div>
+
+    <textarea id="input" placeholder="AIX ला नैसर्गिक भाषेत बोला…
+उदा: आजची तारीख काय आहे?
+उदा: AIX तू स्वतःबद्दल सांग"></textarea>
+
+    <button onclick="askAIX()">Ask AIX</button>
   </div>
 
 <script>
-const BACKEND_URL = "https://172.31.41.137/api/aix";
-// ↑ जर backend URL वेगळा असेल तर बदल
+const BACKEND_URL = "http://172.31.41.137:10000/api/aix";
+
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+
+function nowTime() {
+  return new Date().toLocaleTimeString("mr-IN");
+}
+
+function updateClock() {
+  document.getElementById("clock").innerText =
+    new Date().toLocaleString("mr-IN");
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+function addMsg(role, text) {
+  const div = document.createElement("div");
+  div.className = "msg " + role;
+  div.innerHTML = `<div>${role.toUpperCase()}: ${text}</div>
+                   <div class="time">${nowTime()}</div>`;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 
 async function askAIX() {
-  const input = document.getElementById("input").value;
-  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
 
-  const chat = document.getElementById("chat");
-  chat.innerHTML += `<div class="msg user">YOU: ${input}</div>`;
+  addMsg("user", text);
+  input.value = "";
 
-  document.getElementById("input").value = "";
+  const typing = document.createElement("div");
+  typing.className = "msg typing";
+  typing.innerText = "AIX विचार करत आहे...";
+  chat.appendChild(typing);
+  chat.scrollTop = chat.scrollHeight;
 
   const res = await fetch(BACKEND_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: input })
+    body: JSON.stringify({ message: text })
   });
 
   const data = await res.json();
+  typing.remove();
 
-  if (data.conversation) {
-    chat.innerHTML = "";
-    data.conversation.forEach(m => {
-      chat.innerHTML += `<div class="msg ${m.role}">
-        ${m.role.toUpperCase()}: ${m.text}
-      </div>`;
-    });
+  if (data.result) {
+    addMsg("aix", data.result);
   }
 
   if (data.imageUrl) {
-    chat.innerHTML += `<img src="${data.imageUrl}" />`;
+    const img = document.createElement("img");
+    img.src = data.imageUrl;
+    chat.appendChild(img);
   }
 
   if (data.videoJob) {
-    chat.innerHTML += `<pre>Video Job File: ${data.videoJob}</pre>`;
+    addMsg("aix", "Video job तयार झाला: " + data.videoJob);
   }
-
-  chat.scrollTop = chat.scrollHeight;
 }
 </script>
 </body>
