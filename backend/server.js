@@ -21,7 +21,9 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("✅ AIX Backend is LIVE");
 });
-
+app.get("/", (req, res) => {
+  res.send("🚀 AIX Backend is LIVE & Ready");
+});
 /* =====================
    HEALTH CHECK
 ===================== */
