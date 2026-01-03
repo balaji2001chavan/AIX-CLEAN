@@ -5,60 +5,52 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 8080;
 
-/* =====================
-   BASIC MIDDLEWARE
-===================== */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"],
-}));
+/* ---------- MIDDLEWARE ---------- */
+app.use(cors());
 app.use(express.json());
 
-/* =====================
-   ROOT CHECK
-===================== */
+/* ---------- ROOT (HTML problem FIX) ---------- */
 app.get("/", (req, res) => {
-  res.send("✅ AIX Backend is LIVE");
+  res.send(`
+    <h1>AIX Agentic AI Backend is LIVE 🚀</h1>
+    <p>Status: RUNNING</p>
+    <p>Use <code>/api/health</code> or <code>/api/aix/chat</code></p>
+  `);
 });
-app.get("/", (req, res) => {
-  res.send("🚀 AIX Backend is LIVE & Ready");
-});
-/* =====================
-   HEALTH CHECK
-===================== */
+
+/* ---------- HEALTH CHECK ---------- */
 app.get("/api/health", (req, res) => {
   res.json({
-    status: "OK",
-    server: "AIX",
-    time: new Date().toISOString(),
+    success: true,
+    app: "AIX",
+    mode: "AGENTIC",
+    status: "RUNNING",
+    time: new Date().toISOString()
   });
 });
 
-/* =====================
-   AIX CHAT (DUMMY SAFE)
-   (Frontend connect test)
-===================== */
+/* ---------- AIX CHAT (CORE) ---------- */
 app.post("/api/aix/chat", async (req, res) => {
   const { message } = req.body;
 
   if (!message) {
-    return res.status(400).json({
-      error: "Message required",
-    });
+    return res.status(400).json({ error: "Message is required" });
   }
 
+  // 🔥 Agentic placeholder (future: OpenAI, tools, actions)
+  const reply = `🤖 AIX says: "${message}"\n\n✅ I understood you.\n🧠 I am ready to act next.`;
+
   res.json({
-    reply: `👋 बॉस, AIX ऐकत आहे. तुम्ही म्हणालात: "${message}"`,
-    mode: "ONLINE",
+    reply,
+    agent: "AIX",
+    actionMode: "READY",
+    next: "REAL ACTIONS (files, APIs, automation)"
   });
 });
 
-/* =====================
-   SERVER START
-===================== */
-const PORT = process.env.PORT || 8080;
-
+/* ---------- START SERVER ---------- */
 app.listen(PORT, () => {
   console.log(`🚀 AIX server running on port ${PORT}`);
 });
