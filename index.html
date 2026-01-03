@@ -2,115 +2,273 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>AIX – Command Center</title>
+  <title>AIX – Global Intelligence</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
   <style>
+    * { box-sizing: border-box; }
     body {
       margin: 0;
-      background: #0f172a;
-      color: #e5e7eb;
-      font-family: Arial, sans-serif;
-      display: flex;
+      font-family: 'Inter', sans-serif;
+      background: radial-gradient(circle at top, #0f2027, #000);
+      color: #eaeaea;
       height: 100vh;
+      display: flex;
     }
-    #sidebar {
-      width: 240px;
-      background: #020617;
-      padding: 12px;
-      border-right: 1px solid #1e293b;
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: rgba(15, 32, 39, 0.9);
+      border-right: 1px solid rgba(255,255,255,0.1);
+      padding: 16px;
+      overflow-y: auto;
     }
-    #sidebar h2 {
-      color: #38bdf8;
-      margin-bottom: 10px;
+
+    .sidebar h2 {
+      margin: 0 0 16px;
+      font-size: 18px;
+      color: #00f5ff;
     }
-    #chat {
+
+    .topic {
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.05);
+    }
+
+    .topic:hover {
+      background: rgba(0,245,255,0.15);
+    }
+
+    /* Main */
+    .main {
       flex: 1;
       display: flex;
       flex-direction: column;
     }
-    #messages {
+
+    /* Header */
+    .header {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .header span {
+      font-weight: 600;
+      color: #00f5ff;
+    }
+
+    /* Chat Area */
+    .chat {
       flex: 1;
-      padding: 16px;
+      padding: 20px;
       overflow-y: auto;
     }
+
     .msg {
-      margin-bottom: 12px;
+      max-width: 75%;
+      margin-bottom: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
     }
-    .user { color: #22c55e; }
-    .aix { color: #38bdf8; }
-    #inputBar {
+
+    .user {
+      background: #005c6e;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .aix {
+      background: rgba(255,255,255,0.08);
+      border-left: 3px solid #00f5ff;
+    }
+
+    /* Output Viewer */
+    .output {
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding: 10px 20px;
+      background: rgba(0,0,0,0.5);
+      font-size: 14px;
+    }
+
+    .output a {
+      color: #00f5ff;
+      text-decoration: none;
+    }
+
+    /* Input Bar */
+    .input-bar {
       display: flex;
-      padding: 12px;
-      border-top: 1px solid #1e293b;
+      gap: 10px;
+      padding: 14px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      background: rgba(0,0,0,0.6);
     }
-    #input {
+
+    .input-bar input {
       flex: 1;
-      padding: 10px;
-      background: #020617;
-      color: #fff;
-      border: 1px solid #334155;
-      border-radius: 6px;
-    }
-    button {
-      margin-left: 8px;
-      padding: 10px 14px;
-      background: #38bdf8;
+      padding: 12px;
+      border-radius: 10px;
       border: none;
-      border-radius: 6px;
+      outline: none;
+      font-size: 15px;
+    }
+
+    .btn {
+      padding: 0 16px;
+      border-radius: 10px;
+      border: none;
       cursor: pointer;
-      font-weight: bold;
+      background: #00f5ff;
+      color: #000;
+      font-weight: 600;
+    }
+
+    .btn.secondary {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    /* Status */
+    .status {
+      font-size: 12px;
+      color: #9ff;
     }
   </style>
 </head>
+
 <body>
 
-<div id="sidebar">
-  <h2>AIX</h2>
-  <p>Status: <span id="status">ONLINE</span></p>
-  <p>Mode: AUTO</p>
-</div>
-
-<div id="chat">
-  <div id="messages"></div>
-  <div id="inputBar">
-    <input id="input" placeholder="AIX ला आदेश द्या..." />
-    <button onclick="send()">Send</button>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🧠 AIX Topics</h2>
+    <div id="topics"></div>
   </div>
-</div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Header -->
+    <div class="header">
+      <span>AIX – Global Intelligence Online</span>
+      <div class="status" id="status">Status: Idle</div>
+    </div>
+
+    <!-- Chat -->
+    <div class="chat" id="chat">
+      <div class="msg aix">
+        Good evening बॉस 🌙  
+        मी AIX आहे.  
+        माहिती, सल्ला, की **रियल काम** — काय हवं आहे?
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div class="output" id="output">
+      Output: Nothing yet.
+    </div>
+
+    <!-- Input -->
+    <div class="input-bar">
+      <button class="btn secondary" onclick="startVoice()">🎤</button>
+      <input id="input" placeholder="इथे बोला किंवा लिहा… (Marathi / Hindi / English)">
+      <button class="btn" onclick="send()">Send</button>
+    </div>
+
+  </div>
 
 <script>
-  const API_URL = "http://127.0.0.1:8080/api/aix/chat";
+const chat = document.getElementById("chat");
+const input = document.getElementById("input");
+const statusBox = document.getElementById("status");
+const outputBox = document.getElementById("output");
+const topicsBox = document.getElementById("topics");
 
-  function addMessage(text, who) {
+let currentTopic = "General";
+let topics = { General: [] };
+
+function addTopic(name) {
+  if (!topics[name]) {
+    topics[name] = [];
     const div = document.createElement("div");
-    div.className = "msg " + who;
-    div.innerText = (who === "user" ? "You: " : "AIX: ") + text;
-    document.getElementById("messages").appendChild(div);
-    div.scrollIntoView();
+    div.className = "topic";
+    div.innerText = name;
+    div.onclick = () => loadTopic(name);
+    topicsBox.appendChild(div);
   }
+}
 
-  async function send() {
-    const input = document.getElementById("input");
-    const text = input.value.trim();
-    if (!text) return;
+addTopic("General");
 
-    addMessage(text, "user");
-    input.value = "";
+function loadTopic(name) {
+  currentTopic = name;
+  chat.innerHTML = "";
+  topics[name].forEach(m => renderMsg(m.text, m.by));
+}
 
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-      });
+function renderMsg(text, by) {
+  const div = document.createElement("div");
+  div.className = "msg " + by;
+  div.innerText = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
 
-      const data = await res.json();
-      addMessage(data.reply || "No response", "aix");
+function send() {
+  const text = input.value.trim();
+  if (!text) return;
 
-    } catch (err) {
-      addMessage("Backend connect failed", "aix");
-    }
+  input.value = "";
+  addTopic(currentTopic);
+  topics[currentTopic].push({ text, by: "user" });
+  renderMsg(text, "user");
+
+  statusBox.innerText = "Status: AIX thinking…";
+
+  setTimeout(() => {
+    const reply =
+`बरं बॉस 👍  
+मी समजलो आहे.
+
+मी पुढे हे करू शकतो:
+1️⃣ आधी परिणाम सांगेल  
+2️⃣ मग “करू का?” विचारेन  
+3️⃣ हो म्हटल्यावर रियल काम  
+4️⃣ आणि proof इथेच दाखवेन
+
+पुढचा आदेश द्या बॉस.`;
+
+    topics[currentTopic].push({ text: reply, by: "aix" });
+    renderMsg(reply, "aix");
+
+    statusBox.innerText = "Status: Idle";
+  }, 800);
+}
+
+function startVoice() {
+  if (!('webkitSpeechRecognition' in window)) {
+    alert("Voice input supported नाही");
+    return;
   }
+  const rec = new webkitSpeechRecognition();
+  rec.lang = "en-IN";
+  rec.start();
+  rec.onresult = e => {
+    input.value = e.results[0][0].transcript;
+  };
+}
 </script>
 
 </body>
