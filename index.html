@@ -1,85 +1,62 @@
-<!-- frontend/index.html -->
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<title>AIX – Intelligent Assistant</title>
-<style>
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f172a;
-  color: #e5e7eb;
-}
-#chat {
-  height: 90vh;
-  overflow-y: auto;
-  padding: 15px;
-}
-.msg {
-  margin-bottom: 12px;
-}
-.user { color: #38bdf8; }
-.aix { color: #22c55e; }
-#inputBar {
-  display: flex;
-  padding: 10px;
-  background: #020617;
-}
-input {
-  flex: 1;
-  padding: 10px;
-  border-radius: 6px;
-  border: none;
-}
-button {
-  margin-left: 10px;
-  padding: 10px 16px;
-  background: #22c55e;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-</style>
-</head>
-<body>
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
 
-<div id="chat"></div>
+dotenv.config();
 
-<div id="inputBar">
-  <input id="msg" placeholder="बोल… Type here…" />
-  <button onclick="send()">Send</button>
-</div>
+const app = express();
 
-<script>
-const chat = document.getElementById("chat");
+/* =====================
+   BASIC MIDDLEWARE
+===================== */
+app.use(cors({
+  origin: "*",
+  methods: ["GET", "POST"],
+}));
+app.use(express.json());
 
-function add(text, cls) {
-  const div = document.createElement("div");
-  div.className = "msg " + cls;
-  div.textContent = text;
-  chat.appendChild(div);
-  chat.scrollTop = chat.scrollHeight;
-}
+/* =====================
+   ROOT CHECK
+===================== */
+app.get("/", (req, res) => {
+  res.send("✅ AIX Backend is LIVE");
+});
 
-async function send() {
-  const input = document.getElementById("msg");
-  const text = input.value.trim();
-  if (!text) return;
-
-  add("You: " + text, "user");
-  input.value = "";
-
-  const res = await fetch("http://13.60.221.119:8080/api/aix/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ message: text })
+/* =====================
+   HEALTH CHECK
+===================== */
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "OK",
+    server: "AIX",
+    time: new Date().toISOString(),
   });
+});
 
-  const data = await res.json();
-  add("AIX: " + data.reply, "aix");
-}
-</script>
+/* =====================
+   AIX CHAT (DUMMY SAFE)
+   (Frontend connect test)
+===================== */
+app.post("/api/aix/chat", async (req, res) => {
+  const { message } = req.body;
 
-</body>
-</html>
+  if (!message) {
+    return res.status(400).json({
+      error: "Message required",
+    });
+  }
+
+  res.json({
+    reply: `👋 बॉस, AIX ऐकत आहे. तुम्ही म्हणालात: "${message}"`,
+    mode: "ONLINE",
+  });
+});
+
+/* =====================
+   SERVER START
+===================== */
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, () => {
+  console.log(`🚀 AIX server running on port ${PORT}`);
+});
