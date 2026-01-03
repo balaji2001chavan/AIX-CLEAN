@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import { generateRealVideo } from "./aix-core/executors/media/realVideoGenerator.js";
 dotenv.config();
 
 const app = express();
@@ -19,7 +19,23 @@ app.get("/api/health", (req, res) => {
     time: new Date().toISOString()
   });
 });
+/* ========== REAL VIDEO GENERATOR ========== */
+if (
+  command.output?.toLowerCase().includes("video") ||
+  command.goal?.toLowerCase().includes("video") ||
+  command.goal?.toLowerCase().includes("व्हिडिओ")
+) {
+  const video = generateRealVideo(command.goal);
+  updateState("Video job created");
 
+  return res.json({
+    command,
+    plan,
+    result: video.status,
+    videoJob: video.jobFile,
+    state: getState()
+  });
+}
 /* ========= BASIC CHAT (AIX CORE) ========= */
 app.post("/api/aix/chat", async (req, res) => {
   const { message } = req.body;
