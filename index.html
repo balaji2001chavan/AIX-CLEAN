@@ -70,7 +70,7 @@ async function send() {
   add("You: " + text, "user");
   input.value = "";
 
-  const res = await fetch("http://YOUR_EC2_PUBLIC_IP:8080/api/aix/chat", {
+  const res = await fetch("http://172.31.41.137:8080/api/aix/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ message: text })
