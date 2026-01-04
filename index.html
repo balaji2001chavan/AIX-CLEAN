@@ -1,58 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>AIX – Autonomous Intelligence</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<style>
-body{margin:0;font-family:Inter,Arial;background:#0b0f19;color:#fff}
-header{padding:16px;background:#111827;font-weight:600}
-#chat{height:calc(100vh - 140px);overflow:auto;padding:16px}
-.msg{margin-bottom:14px}
-.user{color:#60a5fa}
-.aix{color:#34d399}
-footer{display:flex;gap:8px;padding:12px;background:#020617}
-input{flex:1;padding:12px;border-radius:8px;border:none}
-button{padding:12px 18px;border-radius:8px;border:none;background:#2563eb;color:#fff}
-</style>
+  <meta charset="UTF-8" />
+  <title>AIX – Agentic Intelligence</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body { font-family: Arial; background:#0f172a; color:#fff; margin:0; }
+    .chat { max-width:700px; margin:auto; padding:20px; }
+    .box { background:#1e293b; padding:12px; border-radius:8px; margin:8px 0; }
+    input { width:100%; padding:12px; border-radius:6px; border:none; }
+    button { padding:12px; width:100%; margin-top:10px; background:#38bdf8; border:none; border-radius:6px; }
+  </style>
 </head>
 <body>
-
-<header>🧠 AIX – Speak. It Executes.</header>
-
-<div id="chat"></div>
-
-<footer>
-<input id="input" placeholder="Ask AIX anything..." />
-<button onclick="send()">Send</button>
-</footer>
+  <div class="chat">
+    <h2>🤖 AIX – Agentic AI</h2>
+    <div id="log"></div>
+    <input id="msg" placeholder="बोला बॉस… AIX ऐकत आहे" />
+    <button onclick="send()">Send</button>
+  </div>
 
 <script>
-async function send(){
-  const input=document.getElementById('input');
-  const text=input.value.trim();
-  if(!text) return;
+async function send() {
+  const msg = document.getElementById("msg").value;
+  document.getElementById("log").innerHTML += `<div class='box'>🧑 ${msg}</div>`;
 
-  add('user',text);
-  input.value='';
-
-  const r=await fetch('/api/aix/chat',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({message:text})
+  const res = await fetch("https://allinonestopdeals.com/api/aix/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: msg })
   });
-  const j=await r.json();
-  add('aix',j.reply || 'Executed.');
-}
 
-function add(type,text){
-  const d=document.createElement('div');
-  d.className='msg '+type;
-  d.innerHTML='<b>'+type.toUpperCase()+':</b> '+text;
-  document.getElementById('chat').appendChild(d);
-  d.scrollIntoView();
+  const data = await res.json();
+  document.getElementById("log").innerHTML += `<div class='box'>🤖 ${data.reply}</div>`;
+  document.getElementById("msg").value = "";
 }
 </script>
-
 </body>
 </html>
