@@ -1,60 +1,41 @@
-import { routeAI } from "../services/aiRouter.js";
-import { saveMessage, getHistory } from "../services/memory.service.js";
+export default {
+  async chat(req, res) {
+    try {
+      const { message } = req.body;
 
-const SYSTEM_PROMPT = `
-You are AIX.
+      if (!message) {
+        return res.json({
+          reply: "काय हवं आहे बॉस? बोला. मी ऐकतोय.",
+        });
+      }
 
-You are a smart, emotionally-aware Indian AI advisor.
-You speak Marathi, Hindi, and English naturally.
-You behave like a trusted human advisor, not a chatbot.
+      // 🔮 Agentic style reply (foundation)
+      const reply = `
+बरं बॉस. समजलो.
 
-Rules:
-- Understand intent deeply
-- Ask clarifying questions if needed
-- Think in business, law, and real-world practicality
-- Never hallucinate or give fake info
-- Do only legal, real-world actions
-- Before execution, always ask: "Shall I execute, Boss?"
+तुमचं म्हणणं:
+"${message}"
 
-Call the user "बॉस".
+मी पुढे हे करू शकतो:
+1) परिणाम सांगणे
+2) Approval मागणे
+3) रियल काम execute करणे
+4) Proof दाखवणे
+
+पुढचा आदेश द्या बॉस.
 `;
 
-const chat = async (req, res) => {
-  try {
-    const { message, sessionId = "default" } = req.body;
+      return res.json({
+        reply,
+        mode: "AGENTIC",
+        next: "WAITING_FOR_COMMAND"
+      });
 
-    if (!message) {
-      return res.status(400).json({ error: "Message required" });
+    } catch (err) {
+      return res.status(500).json({
+        error: "AIX brain error",
+        details: err.message
+      });
     }
-
-    // Load conversation memory
-    const history = await getHistory(sessionId);
-
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT },
-      ...history,
-      { role: "user", content: message }
-    ];
-
-    // Route to best available AI
-    const aiReply = await routeAI(messages);
-
-    // Save memory
-    await saveMessage(sessionId, message, aiReply);
-
-    return res.json({
-      reply: aiReply,
-      state: "READY",
-      providerUsed: aiReply.provider
-    });
-
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    return res.status(500).json({
-      error: "AIX internal error",
-      details: err.message
-    });
   }
 };
-
-export default { chat };
