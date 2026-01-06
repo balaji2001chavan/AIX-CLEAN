@@ -35,6 +35,6 @@ app.get("/", (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🧠 AIX server running on port ${PORT}`);
+app.listen(8080, "127.0.0.1", () => {
+  console.log("AIX running on localhost:8080");
 });
