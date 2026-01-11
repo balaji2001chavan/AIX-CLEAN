@@ -1,9 +1,7 @@
-// server.js  (AIX FINAL BACKEND)
-
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import OpenAI from "openai";
+import fetch from "node-fetch";
 
 dotenv.config();
 
@@ -11,16 +9,8 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 /* ---------------- MIDDLEWARE ---------------- */
-app.use(cors({
-  origin: "*",
-  methods: ["GET", "POST"]
-}));
-app.use(express.json());
-
-/* ---------------- OPENAI ---------------- */
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+app.use(cors());
+app.use(express.json({ limit: "2mb" }));
 
 /* ---------------- HEALTH CHECK ---------------- */
 app.get("/api/health", (req, res) => {
@@ -28,47 +18,72 @@ app.get("/api/health", (req, res) => {
     success: true,
     app: "AIX",
     status: "RUNNING",
+    mode: "AGENTIC",
     time: new Date().toISOString()
   });
 });
 
-/* ---------------- AIX CHAT ---------------- */
+/* ---------------- AIX CHAT CORE ---------------- */
+/*
+  हे बेस AIX ब्रेन आहे
+  पुढे:
+  - tools
+  - file ops
+  - automation
+  - agents
+  हे सगळं इथे जोडणार
+*/
 app.post("/api/aix/chat", async (req, res) => {
   try {
-    const { message } = req.body;
+    const userMessage = req.body?.message;
 
-    if (!message) {
-      return res.status(400).json({ error: "Message required" });
+    if (!userMessage) {
+      return res.status(400).json({ error: "Message is required" });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are AIX – an Agentic AI. You explain, plan, ask before acting, and guide the user step-by-step."
-        },
-        { role: "user", content: message }
-      ]
-    });
+    // 🔮 AIX system personality (base)
+    const aixReply = `
+AIX ACTIVE 🧠
+
+You said: "${userMessage}"
+
+I am AIX – an agentic intelligence.
+I can:
+• plan
+• explain
+• improve systems
+• automate work
+• grow myself step-by-step
+
+Next step?
+Tell me WHAT you want to build, fix, or automate.
+`;
 
     res.json({
-      reply: completion.choices[0].message.content,
+      success: true,
+      reply: aixReply.trim(),
       agent: "AIX",
-      next: "ready_for_actions"
+      next: "READY_FOR_REAL_ACTIONS"
     });
 
   } catch (err) {
-    console.error("AIX ERROR:", err.message);
+    console.error("AIX ERROR:", err);
     res.status(500).json({
-      error: "AIX backend error",
-      details: err.message
+      success: false,
+      error: "AIX core failure"
     });
   }
 });
 
+/* ---------------- ROOT (NO HTML) ---------------- */
+app.get("/", (req, res) => {
+  res.json({
+    app: "AIX",
+    message: "AIX backend is alive. Use /api/aix/chat",
+  });
+});
+
 /* ---------------- START SERVER ---------------- */
-app.listen(PORT, () => {
-  console.log(`✅ AIX backend running on port ${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 AIX SERVER RUNNING ON PORT ${PORT}`);
 });
