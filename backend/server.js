@@ -1,14 +1,12 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 const app = express();
+const PORT = 8080;
+
 app.use(cors());
 app.use(express.json());
 
-/* ---------- HEALTH CHECK ---------- */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -18,27 +16,18 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/* ---------- AIX CHAT CORE ---------- */
-app.post("/api/aix/chat", async (req, res) => {
+app.post("/api/aix/chat", (req, res) => {
   const { message } = req.body;
-
-  if (!message) {
-    return res.status(400).json({ error: "Message is required" });
-  }
-
-  // 🔥 For now: echo brain (later OpenAI/Gemini plug-in)
-  const reply = `AIX says: I received → "${message}". I am alive, learning, and ready to execute.`;
-
   res.json({
-    reply,
-    mode: "AGENTIC",
-    executed: false
+    reply: `AIX received: ${message}`,
+    mode: "AGENTIC"
   });
 });
 
-/* ---------- SERVER START ---------- */
-const PORT = process.env.PORT || 8080;
-
+/**
+ * 🔥 CRITICAL LINE 🔥
+ * THIS IS THE WHOLE PROBLEM FIX
+ */
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 AIX server running on port ${PORT}`);
+  console.log(`AIX server running on 0.0.0.0:${PORT}`);
 });
