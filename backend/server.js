@@ -54,6 +54,9 @@ Rules:
   });
 });
 
-app.listen(8080, "0.0.0.0", () => {
-  console.log("AIX server running on port 8080");
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`AIX Backend running on port ${PORT}`);
 });
+
