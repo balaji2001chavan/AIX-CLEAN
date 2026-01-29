@@ -1,69 +1,54 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-
-dotenv.config();
+import os from "os";
 
 const app = express();
-const PORT = process.env.PORT || 8080;
 
-/* =======================
-   GLOBAL MIDDLEWARE
-======================= */
+/* ===== BASIC CONFIG ===== */
 app.use(express.json());
-
 app.use(cors({
-  origin: [
-    "https://boss-aix-frontend.vercel.app",
-    "https://allinonestopdeals.com"
-  ],
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  origin: "*",   // frontend anywhere (vercel/domain)
 }));
 
-app.options("*", cors());
-
-/* =======================
-   HEALTH CHECK (MANDATORY)
-======================= */
+/* ===== HEALTH CHECK ===== */
 app.get("/api/health", (req, res) => {
-  res.status(200).json({
-    status: "OK",
-    service: "AIX Backend",
-    time: new Date().toISOString()
+  res.json({
+    success: true,
+    app: "AIX",
+    status: "RUNNING",
+    serverTime: new Date().toISOString(),
+    system: {
+      hostname: os.hostname(),
+      platform: os.platform(),
+      cpu: os.cpus().length,
+      memoryGB: Math.round(os.totalmem() / 1024 / 1024 / 1024),
+    }
   });
 });
 
-/* =======================
-   AIX CHAT ENDPOINT
-======================= */
+/* ===== CHAT ENDPOINT ===== */
 app.post("/api/aix/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
+  const { message } = req.body;
 
-    if (!message) {
-      return res.status(400).json({ error: "Message required" });
-    }
-
-    // TEMP SMART REPLY (API जोडल्यावर replace होईल)
-    const reply = `AIX received: "${message}". Backend is healthy and operational.`;
-
-    res.json({
-      reply,
-      mode: "AGENTIC",
-      timestamp: new Date().toISOString()
+  if (!message) {
+    return res.status(400).json({
+      error: "No message provided"
     });
-
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    res.status(500).json({ error: "AIX internal error" });
   }
+
+  // 🔮 Future AI brain goes here (OpenAI / Gemini / HF)
+  const reply = `AIX received your message: "${message}". 
+System is online. Tell me what to build, fix, or analyze.`;
+
+  res.json({
+    success: true,
+    reply,
+    mode: "AGENTIC"
+  });
 });
 
-/* =======================
-   SERVER START
-======================= */
+/* ===== START SERVER ===== */
+const PORT = process.env.PORT || 8080;
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ AIX Backend running on port ${PORT}`);
+  console.log(`✅ AIX backend running on port ${PORT}`);
 });
