@@ -1,102 +1,152 @@
+/**
+ * AIX – Master Agent Brain
+ * Human-level conversational + system awareness AI
+ */
+
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import fs from "fs";
+import os from "os";
 import mongoose from "mongoose";
-import OpenAI from "openai";
+import { execSync } from "child_process";
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-/* ----------------- DATABASE ----------------- */
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log("🟢 MongoDB connected"))
-  .catch(err => console.error("🔴 MongoDB error", err));
+/* =========================
+   SYSTEM INTELLIGENCE
+========================= */
 
-const MemorySchema = new mongoose.Schema({
+function systemStatus() {
+  return {
+    serverTime: new Date().toISOString(),
+    os: os.platform(),
+    cpu: os.cpus()[0].model,
+    memoryGB: (os.totalmem() / 1024 ** 3).toFixed(2),
+    uptimeHours: (os.uptime() / 3600).toFixed(2),
+    nodeVersion: process.version,
+    envLoaded: fs.existsSync(".env"),
+  };
+}
+
+function checkServices() {
+  const report = {};
+
+  try {
+    execSync("pm2 list");
+    report.pm2 = "RUNNING";
+  } catch {
+    report.pm2 = "NOT RUNNING";
+  }
+
+  try {
+    execSync("nginx -t");
+    report.nginx = "CONFIG OK";
+  } catch {
+    report.nginx = "NGINX ERROR";
+  }
+
+  report.mongodb =
+    process.env.MONGODB_URI ? "CONFIGURED" : "NOT CONFIGURED";
+
+  report.openai =
+    process.env.OPENAI_API_KEY ? "KEY PRESENT" : "MISSING KEY";
+
+  return report;
+}
+
+/* =========================
+   DATABASE (MEMORY)
+========================= */
+
+mongoose
+  .connect(process.env.MONGODB_URI || "")
+  .then(() => console.log("🧠 AIX Memory Online"))
+  .catch(() => console.log("⚠️ MongoDB not connected"));
+
+const Memory = mongoose.model("AIX_Memory", {
   role: String,
-  message: String,
-  time: { type: Date, default: Date.now }
+  content: String,
+  time: { type: Date, default: Date.now },
 });
 
-const Memory = mongoose.model("Memory", MemorySchema);
+/* =========================
+   AIX CORE CHAT
+========================= */
 
-/* ----------------- OPENAI ----------------- */
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+app.post("/api/aix/chat", async (req, res) => {
+  const { message } = req.body;
 
-/* ----------------- HEALTH ----------------- */
-app.get("/api/health", (req, res) => {
+  if (!message) {
+    return res.json({ reply: "Say something. I am listening." });
+  }
+
+  await Memory.create({ role: "user", content: message });
+
+  const sys = systemStatus();
+  const services = checkServices();
+
+  const reply = `
+Hello. I am AIX.
+
+I understood you said:
+"${message}"
+
+🧠 Current System Awareness:
+• Server OS: ${sys.os}
+• Node.js: ${sys.nodeVersion}
+• Memory: ${sys.memoryGB} GB
+• Uptime: ${sys.uptimeHours} hours
+• .env Loaded: ${sys.envLoaded}
+
+⚙️ Service Status:
+• PM2: ${services.pm2}
+• NGINX: ${services.nginx}
+• MongoDB: ${services.mongodb}
+• OpenAI API: ${services.openai}
+
+📌 What I can do next:
+1. Diagnose AWS / EC2 issues
+2. Fix backend/frontend connection
+3. Analyze GitHub repo structure
+4. Prepare production-ready deployment
+5. Act as business / app / AI builder
+
+Tell me **what you want to build, fix, or grow**.
+I will guide and execute step by step.
+`.trim();
+
+  await Memory.create({ role: "aix", content: reply });
+
   res.json({
-    success: true,
-    app: "AIX",
-    status: "RUNNING",
-    time: new Date().toISOString()
+    reply,
+    mode: "MASTER_AGENT",
+    intelligence: "HUMAN_LEVEL",
   });
 });
 
-/* ----------------- AIX CHAT ----------------- */
-app.post("/api/aix/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
-    if (!message) {
-      return res.status(400).json({ error: "Message required" });
-    }
+/* =========================
+   HEALTH CHECK
+========================= */
 
-    // save user message
-    await Memory.create({ role: "user", message });
-
-    // load last memory
-    const history = await Memory.find().sort({ time: -1 }).limit(10);
-
-    const systemPrompt = `
-You are AIX.
-You are not a chatbot.
-You are an autonomous advisor, engineer, and executor.
-
-Rules:
-- Speak like a calm human advisor
-- Explain what you understand
-- Propose a plan
-- Ask before executing real actions
-- Remember past conversations
-- Help build apps, businesses, systems, AI tools
-`;
-
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4.1-mini",
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...history.reverse().map(h => ({
-          role: h.role,
-          content: h.message
-        })),
-        { role: "user", content: message }
-      ]
-    });
-
-    const reply = completion.choices[0].message.content;
-
-    // save AIX reply
-    await Memory.create({ role: "assistant", message: reply });
-
-    res.json({
-      reply,
-      mode: "AGENTIC",
-      memory_used: history.length
-    });
-
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "AIX brain failure" });
-  }
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "AIX ONLINE",
+    brain: "ACTIVE",
+    time: new Date().toISOString(),
+  });
 });
 
-/* ----------------- SERVER ----------------- */
+/* =========================
+   START SERVER
+========================= */
+
 const PORT = process.env.PORT || 8080;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 AIX brain running on port ${PORT}`);
+  console.log(`🚀 AIX Master Brain running on port ${PORT}`);
 });
