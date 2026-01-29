@@ -1,62 +1,83 @@
 import express from "express";
 import cors from "cors";
-import OpenAI from "openai";
+import dotenv from "dotenv";
+import fetch from "node-fetch";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+const PORT = process.env.PORT || 8080;
 
+/* =========================
+   HEALTH CHECK
+========================= */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     app: "AIX",
     status: "RUNNING",
-    mode: "AGENTIC"
+    time: new Date().toISOString(),
   });
 });
 
+/* =========================
+   AIX BRAIN (LLM CALL)
+========================= */
+async function callLLM(userMessage) {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are AIX – an Agentic AI.
+You do not just talk.
+You analyze, plan, and explain actions step by step.
+When useful, suggest real-world execution steps.
+`,
+        },
+        { role: "user", content: userMessage },
+      ],
+      temperature: 0.7,
+    }),
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+/* =========================
+   AIX CHAT API
+========================= */
 app.post("/api/aix/chat", async (req, res) => {
-  const userMessage = req.body.message;
+  try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: "Message required" });
+    }
 
-  const systemPrompt = `
-You are AIX.
-You are an autonomous Agentic AI.
-You act as:
-- Advisor
-- Engineer
-- Executor
+    const reply = await callLLM(message);
 
-Rules:
-- Speak like a friendly human
-- Explain before acting
-- Ask before fixing or changing anything
-- Think step by step
-- Suggest improvements proactively
-- Stay updated with current technology and world events
-`;
-
-  const response = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: systemPrompt },
-      { role: "user", content: userMessage }
-    ]
-  });
-
-  res.json({
-    reply: response.choices[0].message.content,
-    agent: "AIX",
-    intelligence: "OPENAI-GPT"
-  });
+    res.json({
+      reply,
+      agent: "AIX",
+      mode: "AGENTIC",
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "AIX brain error" });
+  }
 });
-
-const PORT = process.env.PORT || 8080;
 
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`AIX Backend running on port ${PORT}`);
+  console.log(`🚀 AIX Backend running on port ${PORT}`);
 });
-
