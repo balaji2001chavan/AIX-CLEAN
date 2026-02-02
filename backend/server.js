@@ -1,31 +1,17 @@
-// backend/server.js
 import express from "express";
 import cors from "cors";
-import os from "os";
 import dotenv from "dotenv";
+import os from "os";
 
 dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-/* ---------- CORS (VERY IMPORTANT) ---------- */
-app.use(
-  cors({
-    origin: [
-      "https://boss-aix-frontend.vercel.app",
-      "https://allinonestopdeals.com",
-      "http://localhost:5173",
-      "http://localhost:3000"
-    ],
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
-  })
-);
-
+/* ------------------ MIDDLEWARE ------------------ */
+app.use(cors({ origin: "*"}));
 app.use(express.json());
 
-/* ---------- HEALTH ---------- */
+/* ------------------ HEALTH ------------------ */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -36,12 +22,12 @@ app.get("/api/health", (req, res) => {
       hostname: os.hostname(),
       platform: os.platform(),
       cpu: os.cpus().length,
-      memoryGB: Math.round(os.totalmem() / 1024 / 1024 / 1024)
+      memoryGB: Math.round(os.totalmem()/1024/1024/1024)
     }
   });
 });
 
-/* ---------- CHAT (BASIC SMART CORE) ---------- */
+/* ------------------ AIX CHAT API ------------------ */
 app.post("/api/aix/chat", async (req, res) => {
   const { message } = req.body;
 
@@ -49,22 +35,37 @@ app.post("/api/aix/chat", async (req, res) => {
     return res.status(400).json({ error: "Message missing" });
   }
 
-  // Placeholder brain (Phase-3 मध्ये OpenAI / Gemini येईल)
-  const reply = `AIX understood: "${message}".  
-System is running fine. Backend + Domain + AWS OK.  
-Tell me what to build, fix, or grow.`;
+  const reply = `
+Hello 👋 I am AIX – Agentic AI
+
+You said:
+"${message}"
+
+🧠 Current Status:
+• Server: ONLINE
+• Mode: AGENTIC
+• Host: ${os.hostname()}
+• Platform: ${os.platform()}
+• Free RAM: ${Math.round(os.freemem()/1024/1024)} MB
+
+⚡ I can:
+✔ Build apps / websites
+✔ Debug AWS / NGINX / PM2
+✔ Generate marketing, reels, leads
+✔ Create business systems
+✔ Act like ChatGPT + EXECUTE real tasks
+
+Tell me what to BUILD, FIX, or SCALE.
+`;
 
   res.json({
     success: true,
-    reply,
-    meta: {
-      handledBy: "AIX-Core",
-      time: new Date().toISOString()
-    }
+    reply: reply.trim(),
+    agent: "AIX"
   });
 });
 
-/* ---------- START ---------- */
+/* ------------------ START ------------------ */
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`AIX backend running on port ${PORT}`);
+  console.log(`🚀 AIX backend running on ${PORT}`);
 });
