@@ -1,94 +1,46 @@
-/**
- * AIX – Agentic AI Backend (FINAL MASTER)
- * Works with:
- * - AWS EC2
- * - NGINX reverse proxy
- * - Vercel frontend
- * - Custom Domain (HTTPS)
- */
-
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const os = require("os");
+import express from "express";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
+app.use(express.json());
 
-/* ---------------- BASIC MIDDLEWARE ---------------- */
+const PORT = 8888;
 
-app.use(express.json({ limit: "2mb" }));
-
-// CORS – Vercel + Domain safe
-app.use(
-  cors({
-    origin: "*", // production मध्ये specific domain देऊ शकतो
-    methods: ["GET", "POST"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-/* ---------------- HEALTH CHECK ---------------- */
-
+/* Health check */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
     app: "AIX",
     status: "RUNNING",
-    serverTime: new Date().toISOString(),
-    system: {
-      hostname: os.hostname(),
-      platform: os.platform(),
-      cpu: os.cpus().length,
-      memoryGB: Math.round(os.totalmem() / 1024 / 1024 / 1024),
-    },
+    time: new Date().toISOString()
   });
 });
 
-/* ---------------- AIX CHAT API ---------------- */
-
+/* AIX Chat */
 app.post("/api/aix/chat", async (req, res) => {
-  try {
-    const { message } = req.body;
+  const { message } = req.body;
 
-    if (!message) {
-      return res.status(400).json({
-        success: false,
-        error: "Message is required",
-      });
-    }
+  // TEMPORARY INTELLIGENCE (later OpenAI / Gemini / HF)
+  const reply = `
+I understand you said: <b>${message}</b><br/><br/>
+I am AIX – your advisor, engineer and executor.<br/>
+Next I can:
+<ul>
+<li>Design an app</li>
+<li>Plan a business</li>
+<li>Generate code</li>
+<li>Automate tasks</li>
+</ul>
+Tell me what to do next.
+  `;
 
-    /**
-     * 🔮 FUTURE:
-     * Here we will plug:
-     * - OpenAI
-     * - Gemini
-     * - HuggingFace
-     * - MongoDB memory
-     * - Tool execution
-     */
-
-    // TEMP intelligent response (system alive proof)
-    const reply = `🧠 AIX heard you: "${message}"
-I am alive, connected, and ready to evolve.`;
-
-    res.json({
-      success: true,
-      mode: "AGENTIC",
-      reply,
-    });
-  } catch (err) {
-    console.error("AIX ERROR:", err);
-    res.status(500).json({
-      success: false,
-      error: "AIX internal error",
-    });
-  }
+  res.json({
+    reply,
+    mode: "AGENTIC"
+  });
 });
 
-/* ---------------- SERVER START ---------------- */
-
-const PORT = process.env.PORT || 8080;
-
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ AIX backend running on port ${PORT}`);
+  console.log("AIX backend running on port", PORT);
 });
