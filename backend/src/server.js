@@ -1,15 +1,16 @@
-import express from "express";
-import cors from "cors";
 import dotenv from "dotenv";
-import { runAIX } from "./aix-agent.js";
-
 dotenv.config();
 
+import express from "express";
+import cors from "cors";
+import { runAIX } from "./aix-agent.js";
+
 const app = express();
-app.use(cors({ origin: "*" }));
+
+app.use(cors());
 app.use(express.json());
 
-/* HEALTH */
+/* HEALTH CHECK */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -21,20 +22,23 @@ app.get("/api/health", (req, res) => {
 
 /* CHAT */
 app.post("/api/aix/chat", async (req, res) => {
-  const { message } = req.body;
-  if (!message) {
-    return res.status(400).json({ error: "Message required" });
-  }
-
   try {
+    const { message } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: "Message required" });
+    }
+
     const reply = await runAIX(message);
-    res.json({ reply, mode: "AGENTIC" });
+    res.json({ reply });
+
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
 
 const PORT = process.env.PORT || 8888;
+
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`AIX backend running on port ${PORT}`);
+  console.log(`✅ AIX backend running on port ${PORT}`);
 });
