@@ -6,12 +6,15 @@ import fetch from "node-fetch";
 dotenv.config();
 
 const app = express();
-app.use(cors());
+
+/* 🔴 MOST IMPORTANT */
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 const PORT = 8888;
 
-// HEALTH
+/* HEALTH */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -21,46 +24,58 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// CHAT
+/* CHAT */
 app.post("/api/chat", async (req, res) => {
   try {
-    const userMessage = req.body.message;
+    console.log("REQ BODY 👉", req.body);
 
-    if (!userMessage) {
-      return res.json({ reply: "मला काहीतरी विचार 😄" });
+    const message = req.body?.message;
+
+    if (!message) {
+      return res.json({
+        reply: "मला काहीतरी विचार ना 😄"
+      });
     }
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: "You are AIX, a smart Indian AI assistant." },
-          { role: "user", content: userMessage }
-        ]
-      })
-    });
+    const openaiRes = await fetch(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-mini",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are AIX, an intelligent Indian AI assistant. Reply like a human."
+            },
+            { role: "user", content: message }
+          ]
+        })
+      }
+    );
 
-    const data = await response.json();
+    const data = await openaiRes.json();
 
     const reply =
-      data?.choices?.[0]?.message?.content ||
-      "AIX सध्या विचार करत आहे 🤖";
+      data?.choices?.[0]?.message?.content ??
+      "AIX विचार करत आहे 🤖";
 
     res.json({ reply });
 
   } catch (err) {
-    res.json({
-      reply: "AIX ला थोडा त्रास झाला 😅 पुन्हा try कर",
+    console.error("AIX ERROR ❌", err);
+    res.status(500).json({
+      reply: "AIX ला internal error आला 😅",
       error: err.message
     });
   }
 });
 
 app.listen(PORT, () => {
-  console.log("AIX Backend running on port", PORT);
+  console.log("✅ AIX Backend running on port", PORT);
 });
