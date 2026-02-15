@@ -1,20 +1,28 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
+import { runAgent } from "./agent.js";
+import mongoose from "mongoose";
 
 dotenv.config();
 
 const app = express();
-
-/* 🔴 MOST IMPORTANT */
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cors());
+app.use(express.json());
 
-const PORT = 8888;
+/* ================= DB ================= */
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log("🧠 MongoDB Connected"))
+  .catch(err => console.error("Mongo Error", err));
 
-/* HEALTH */
+const MemorySchema = new mongoose.Schema({
+  message: String,
+  reply: String,
+  createdAt: { type: Date, default: Date.now }
+});
+const Memory = mongoose.model("Memory", MemorySchema);
+
+/* ================= HEALTH ================= */
 app.get("/api/health", (req, res) => {
   res.json({
     success: true,
@@ -24,58 +32,27 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/* CHAT */
-app.post("/api/chat", async (req, res) => {
+/* ================= CHAT ================= */
+app.post("/api/aix/chat", async (req, res) => {
   try {
-    console.log("REQ BODY 👉", req.body);
-
-    const message = req.body?.message;
-
+    const { message } = req.body;
     if (!message) {
-      return res.json({
-        reply: "मला काहीतरी विचार ना 😄"
-      });
+      return res.status(400).json({ reply: "Message नाही दिला ❌" });
     }
 
-    const openaiRes = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          messages: [
-            {
-              role: "system",
-              content:
-                "You are AIX, an intelligent Indian AI assistant. Reply like a human."
-            },
-            { role: "user", content: message }
-          ]
-        })
-      }
-    );
+    const reply = await runAgent(message);
 
-    const data = await openaiRes.json();
-
-    const reply =
-      data?.choices?.[0]?.message?.content ??
-      "AIX विचार करत आहे 🤖";
+    await Memory.create({ message, reply });
 
     res.json({ reply });
-
   } catch (err) {
-    console.error("AIX ERROR ❌", err);
-    res.status(500).json({
-      reply: "AIX ला internal error आला 😅",
-      error: err.message
-    });
+    console.error(err);
+    res.status(500).json({ reply: "AIX ला error आला 😵" });
   }
 });
 
-app.listen(PORT, () => {
-  console.log("✅ AIX Backend running on port", PORT);
+/* ================= START ================= */
+const PORT = process.env.PORT || 8888;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 AIX Backend running on ${PORT}`);
 });
