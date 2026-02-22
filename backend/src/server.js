@@ -1,16 +1,19 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import { aixAgent } from "./agent.js";
 
 dotenv.config();
 
 const app = express();
+const PORT = process.env.PORT || 8888;
+
 app.use(cors());
 app.use(express.json());
 
-/* HEALTH */
-app.get("/api/health", (req, res) => {
+/* =========================
+   HEALTH CHECK
+========================= */
+app.get("/health", (req, res) => {
   res.json({
     success: true,
     service: "AIX Backend",
@@ -19,28 +22,39 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-/* CHAT */
-app.post("/api/aix/chat", async (req, res) => {
-  const { message } = req.body;
-
-  if (!message) {
-    return res.json({
-      reply: "काय विचारायचं आहे ते लिही. मी ऐकतोय 🙂"
-    });
-  }
-
+/* =========================
+   CHAT API (SMART BASE)
+========================= */
+app.post("/chat", async (req, res) => {
   try {
-    const reply = await aixAgent(message);
-    res.json({ reply });
-  } catch (err) {
+    const { message } = req.body;
+
+    if (!message) {
+      return res.json({
+        reply: "😅 अरे, काही तरी बोल ना… मी ऐकतोय!"
+      });
+    }
+
+    // 🔮 future: OpenAI / Gemini / HF इथे जोडणार
+    const reply = `🤖 AIX: तू म्हणालास → "${message}".  
+मी सध्या शिकतोय, पण लवकरच स्वतः निर्णय घेईन 😄`;
+
     res.json({
-      reply: "काहीतरी चुकलं. पण काळजी नको, मी स्वतः ते fix करतोय.",
+      success: true,
+      reply
+    });
+
+  } catch (err) {
+    res.status(500).json({
+      success: false,
       error: err.message
     });
   }
 });
 
-const PORT = process.env.PORT || 8888;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`✅ AIX Backend running on ${PORT}`);
+/* =========================
+   SERVER START
+========================= */
+app.listen(PORT, "127.0.0.1", () => {
+  console.log(`🚀 AIX Backend running on http://127.0.0.1:${PORT}`);
 });
