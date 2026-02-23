@@ -1,14 +1,12 @@
-import mongoose from "mongoose";
+import { MongoClient } from "mongodb";
+import dotenv from "dotenv";
 
-const MemorySchema = new mongoose.Schema({
-  user: String,
-  message: String,
-  reply: String,
-  createdAt: { type: Date, default: Date.now }
-});
+dotenv.config();
 
-export const Memory = mongoose.model("Memory", MemorySchema);
+const client = new MongoClient(process.env.MONGO_URI);
 
-export async function saveMemory(user, message, reply) {
-  await Memory.create({ user, message, reply });
+export async function saveMemory(text) {
+  await client.connect();
+  const db = client.db("aix");
+  await db.collection("memory").insertOne({ text, time: new Date() });
 }
