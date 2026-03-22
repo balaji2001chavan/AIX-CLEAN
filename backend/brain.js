@@ -1,18 +1,16 @@
-import axios from "axios";
-import dotenv from "dotenv";
+const fs = require("fs-extra");
 
-dotenv.config();
+let memory = [];
 
-export async function askBrain(message) {
-
-  const res = await axios.post(
-    `${process.env.OLLAMA_URL}/api/generate`,
-    {
-      model: "llama3",
-      prompt: message,
-      stream: false
-    }
-  );
-
-  return res.data.response;
+function addMemory(text) {
+  memory.push(text);
 }
+
+function recallMemory(query) {
+  return memory
+    .filter(m => m.includes(query))
+    .slice(-5)
+    .join("\n");
+}
+
+module.exports = { addMemory, recallMemory };
