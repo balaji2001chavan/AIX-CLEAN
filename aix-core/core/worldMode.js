@@ -4,12 +4,11 @@ async function worldAwareness() {
   console.log("🌍 WORLD MODE ACTIVE");
 
   try {
-    const news = await axios.get("https://api.publicapis.org/entries");
+    const res = await axios.get("https://api.coindesk.com/v1/bpi/currentprice.json");
 
-    console.log("World Knowledge Loaded:", news.data.count);
-
+    console.log("World Data:", res.data.bpi.USD.rate);
   } catch (e) {
-    console.log("World Mode Error:", e.message);
+    console.log("World fetch failed");
   }
 }
 
