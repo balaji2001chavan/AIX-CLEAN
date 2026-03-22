@@ -2,4 +2,8 @@ node_modules
 .env
 backend/.env
 logs
-uploads
+uploadsnode_modules
+.env
+memory.json
+node_modules
+memory
